@@ -63,8 +63,8 @@ CREATE TABLE IF NOT EXISTS questions (
         'rating_scale',
         'file_upload'
     ) NOT NULL,
+    question_order SMALLINT UNSIGNED NOT NULL DEFAULT 1,
     page SMALLINT UNSIGNED NOT NULL DEFAULT 1,
-    order SMALLINT UNSIGNED NOT NULL DEFAULT 1,
     parent_option_id INT UNSIGNED NULL, -- NULL artinya question tersebut selalu muncul, namun jika ada value maka question tersebut hanya muncul apabila opsi dengan id pada tabel options yang sama dengan parent_option_id dipilih sebagai jawaban
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS options ( -- Hanya untuk pertanyaan bertipe radio_but
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     question_id INT UNSIGNED NOT NULL,
     option_text VARCHAR(255) NOT NULL,
-    order SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+    option_order SMALLINT UNSIGNED NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
