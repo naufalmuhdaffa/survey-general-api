@@ -12,5 +12,8 @@
             "name": "naufalmuhdaffa",
             "email": "naufaldaffa878@gmail.com"
         }
-    ]
+    ],
+    "require": {
+        "vlucas/phpdotenv": "^5.6"
+    }
 }
