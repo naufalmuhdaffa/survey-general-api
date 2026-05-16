@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Auth\Register;
 
-final class RegisterRoutes
+use App\Interfaces\RoutesInterface;
+
+final class RegisterRoutes implements RoutesInterface
 {
     public static function dispatch(
         string $path,

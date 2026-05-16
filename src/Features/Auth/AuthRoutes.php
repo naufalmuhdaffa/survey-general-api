@@ -6,16 +6,17 @@ namespace App\Features\Auth;
 
 use App\Features\Auth\Register\RegisterRoutes;
 use App\Features\Auth\Login\LoginRoutes;
+use App\Interfaces\RoutesInterface;
 
-final class AuthRoutes
+final class AuthRoutes implements RoutesInterface
 {
-    public static function dispatch(string $method, string $path, array $segments): bool
+    public static function dispatch(string $path, string $method, array $segments): bool
     {
         if (RegisterRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 
-        if (LoginRoutes::dispatch($path, $method)) {
+        if (LoginRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 

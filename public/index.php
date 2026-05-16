@@ -56,7 +56,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 $segments = array_values(array_filter(explode('/', $path)));
 
 try {
-    if (Routes::dispatch($method, $path, $segments)) {
+    if (Routes::dispatch($path, $method, $segments)) {
         exit;
     }
     
