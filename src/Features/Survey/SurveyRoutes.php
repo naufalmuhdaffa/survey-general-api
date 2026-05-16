@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey;
 
 use App\Features\Survey\Create\CreateSurveyRoutes;
+use App\Features\Survey\List\ListSurveyRoutes;
 use App\Interfaces\RoutesInterface;
 
 final class SurveyRoutes implements RoutesInterface
@@ -15,6 +16,10 @@ final class SurveyRoutes implements RoutesInterface
         array $segments
     ): bool {
         if (CreateSurveyRoutes::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (ListSurveyRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 
