@@ -6,6 +6,7 @@ namespace App\Features\Survey;
 
 use App\Features\Survey\Create\CreateSurveyRoutes;
 use App\Features\Survey\List\ListSurveyRoutes;
+use App\Features\Survey\Question\QuestionRoutes;
 use App\Interfaces\RoutesInterface;
 
 final class SurveyRoutes implements RoutesInterface
@@ -20,6 +21,10 @@ final class SurveyRoutes implements RoutesInterface
         }
 
         if (ListSurveyRoutes::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (QuestionRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 
