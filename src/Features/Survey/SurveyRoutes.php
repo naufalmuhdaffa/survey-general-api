@@ -8,6 +8,7 @@ use App\Features\Survey\Create\CreateSurveyRoutes;
 use App\Features\Survey\List\ListSurveyRoutes;
 use App\Features\Survey\Question\QuestionRoutes;
 use App\Features\Survey\Detail\DetailSurveyRoutes;
+use App\Features\Survey\Update\UpdateSurveyRoutes;
 use App\Interfaces\RoutesInterface;
 
 final class SurveyRoutes implements RoutesInterface
@@ -30,6 +31,10 @@ final class SurveyRoutes implements RoutesInterface
         }
 
         if (DetailSurveyRoutes::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (UpdateSurveyRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 
