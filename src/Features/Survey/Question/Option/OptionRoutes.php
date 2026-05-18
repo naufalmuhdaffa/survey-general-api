@@ -7,6 +7,7 @@ namespace App\Features\Survey\Question\Option;
 use App\Interfaces\RoutesInterface;
 use App\Features\Survey\Question\Option\Create\CreateOptionRoutes;
 use App\Features\Survey\Question\Option\Update\UpdateOptionRoutes;
+use App\Features\Survey\Question\Option\Delete\DeleteOptionRoutes;
 
 final class OptionRoutes implements RoutesInterface
 {
@@ -17,6 +18,10 @@ final class OptionRoutes implements RoutesInterface
         }
 
         if (UpdateOptionRoutes::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (DeleteOptionRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 
