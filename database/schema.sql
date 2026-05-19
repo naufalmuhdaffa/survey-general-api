@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS surveys (
     FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT
 );
 
-CREATE TABLE survey_positions (
+CREATE TABLE IF NOT EXISTS survey_restrictions (
     survey_id INT UNSIGNED NOT NULL,
-    position ENUM('asn', 'non_asn', 'non_pegawai'), -- NULL = semua orang
+    position ENUM('asn', 'non_asn', 'non_pegawai') NOT NULL,
     PRIMARY KEY (survey_id, position),
     FOREIGN KEY (survey_id) REFERENCES surveys(id) ON DELETE CASCADE
 );
@@ -54,6 +54,7 @@ CREATE TABLE survey_positions (
 CREATE TABLE IF NOT EXISTS questions (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     survey_id INT UNSIGNED NOT NULL,
+    image_path VARCHAR(255),
     question_text TEXT NOT NULL,
     question_type ENUM(
         'free_text',
@@ -99,7 +100,8 @@ CREATE TABLE IF NOT EXISTS answers (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     response_id INT UNSIGNED NOT NULL,
     question_id INT UNSIGNED NOT NULL,
-    answer_text TEXT, -- Untuk free_text, file_upload
+    file_path VARCHAR(255), -- Untuk file_upload
+    answer_text TEXT, -- Untuk free_text
     option_id INT UNSIGNED, -- Untuk radio_button, checkbox, dropdown, dan rating_scale
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
