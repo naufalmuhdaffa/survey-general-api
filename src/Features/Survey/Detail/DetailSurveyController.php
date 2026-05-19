@@ -26,6 +26,7 @@ final class DetailSurveyController
             ], 404);
         }
 
+        $survey['restrictions'] = $this->repository->getRestrictionsBySurveyId($surveyId);
         $questions = $this->repository->getQuestionsBySurveyId($surveyId);
 
         foreach ($questions as &$question) {

@@ -30,4 +30,22 @@ final class CreateSurveyRepository
         $stmt->execute([$title, $description, $createdBy, $opensAt, $closesAt]);
         return (int) $this->pdo->lastInsertId();
     }
+
+    public function createSurveyRestrictions(int $surveyId, array $positions): void
+    {
+        $placeholders = implode(', ', array_fill(0, \count($positions), '(?, ?)'));
+        $values = [];
+
+        foreach ($positions as $position) {
+            $values[] = $surveyId;
+            $values[] = $position;
+        }
+
+        $stmt = $this->pdo->prepare("
+        INSERT INTO survey_restrictions (survey_id, position)
+        VALUES $placeholders
+        ");
+
+        $stmt->execute($values);
+    }
 }

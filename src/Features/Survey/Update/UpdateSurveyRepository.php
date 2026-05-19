@@ -39,4 +39,28 @@ final class UpdateSurveyRepository
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($values);
     }
+
+    public function deleteRestrictions(int $surveyId): void
+    {
+        $stmt = $this->pdo->prepare("DELETE FROM survey_restrictions WHERE survey_id = ?");
+        $stmt->execute([$surveyId]);
+    }
+
+    public function createSurveyRestrictions(int $surveyId, array $positions): void
+    {
+        $placeholders = implode(', ', array_fill(0, \count($positions), '(?, ?)'));
+        $values = [];
+
+        foreach ($positions as $position) {
+            $values[] = $surveyId;
+            $values[] = $position;
+        }
+
+        $stmt = $this->pdo->prepare("
+        INSERT INTO survey_restrictions (survey_id, position)
+        VALUES $placeholders
+        ");
+
+        $stmt->execute($values);
+    }
 }

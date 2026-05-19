@@ -76,6 +76,34 @@ final class UpdateSurveyController
             ], 422);
         }
 
+        $validPositions = ['asn', 'non_asn', 'non_pegawai'];
+
+        if (isset($data['positions'])) {
+            $positions = $data['positions'];
+
+            if (!\is_array($positions)) {
+                Response::json([
+                    'status' => 'error',
+                    'message' => 'Positions harus berupa array'
+                ], 422);
+            }
+
+            foreach ($positions as $position) {
+                if (!\in_array($position, $validPositions)) {
+                    Response::json([
+                        'status' => 'error',
+                        'message' => 'Posisi tidak valid: ' . $position
+                    ], 422);
+                }
+            }
+
+            $this->repository->deleteRestrictions($surveyId);
+
+            if (!empty($positions)) {
+                $this->repository->createSurveyRestrictions($surveyId, $positions);
+            }
+        }
+
         $this->repository->updateSurvey($surveyId, $fields);
 
         Response::json([

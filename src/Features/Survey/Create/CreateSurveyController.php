@@ -60,7 +60,25 @@ final class CreateSurveyController
             ], 422);
         }
 
+        $validPositions = ['asn', 'non_asn', 'non_pegawai'];
+        $positions = $data['positions'] ?? [];
+
+        if (!empty($positions)) {
+            foreach ($positions as $position) {
+                if (!\in_array($position, $validPositions)) {
+                    Response::json([
+                        'status' => 'error',
+                        'message' => 'Posisi tidak valid: ' . $position
+                    ], 422);
+                }
+            }
+        }
+
         $surveyId = $this->repository->createSurvey($title, $description, $createdBy, $opensAt, $closesAt);
+
+        if (!empty($positions)) {
+            $this->repository->createSurveyRestrictions($surveyId, $positions);
+        }
 
         Response::json([
             'status' => 'success',

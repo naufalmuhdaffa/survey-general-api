@@ -55,4 +55,15 @@ final class DetailSurveyRepository
         $stmt->execute([$questionId]);
         return $stmt->fetchAll();
     }
+
+    public function getRestrictionsBySurveyId(int $surveyId): array
+    {
+        $stmt = $this->pdo->prepare("
+        SELECT position
+        FROM survey_restrictions
+        WHERE survey_id = ?
+        ");
+        $stmt->execute([$surveyId]);
+        return array_column($stmt->fetchAll(), 'position');
+    }
 }
