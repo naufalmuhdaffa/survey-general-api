@@ -19,7 +19,9 @@ final class ListSurveyRepository
     public function getAllSurveys(?string $position): array
     {
         $stmt = $this->pdo->prepare("
-        SELECT s.id, s.title, s.description, s.opens_at, s.closes_at,
+        SELECT s.id, s.title, s.description, 
+        COALESCE(s.thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path, 
+        s.opens_at, s.closes_at,
             CASE
                 WHEN s.opens_at IS NOT NULL AND NOW() < s.opens_at THEN 'upcoming'
                 WHEN s.closes_at IS NOT NULL AND NOW() > s.closes_at THEN 'closed'
