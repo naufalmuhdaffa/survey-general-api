@@ -126,23 +126,56 @@ final class RegisterController
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         // curl_close($ch);
 
-        $position = null;
-        $type = null;
+        if ($response === false) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Gagal menghubungi layanan verifikasi NIK'
+            ], 500);
+        }
 
-        if ($httpCode === 200) {
-            $employeeData = json_decode($response, true);
+        if ($httpCode === 404) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'NIK tidak ditemukan di data referensi'
+            ], 404);
+        }
 
-            $position = $employeeData['data']['position'] ?? null;
-            $type = $employeeData['data']['type'] ?? null;
-        } elseif ($httpCode !== 404) {
+        if ($httpCode !== 200) {
             Response::json([
                 'status' => 'error',
                 'message' => 'Gagal verifikasi NIK'
             ], 500);
         }
 
+        $employeeData = json_decode($response, true);
+
+        $position = $employeeData['data']['position'] ?? null;
+        $validPositions = ['asn', 'non_asn', 'public'];
+
+        if (!\in_array($position, $validPositions, true)) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Data posisi NIK tidak valid'
+            ], 422);
+        }
+
+        $verifiedFullName = trim($employeeData['data']['name'] ?? '');
+
+        if ($verifiedFullName === '') {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Data nama dari verifikasi NIK tidak valid'
+            ], 422);
+        }
+
         try {
-            $userId = $this->repository->registerUser($nik, $fullName, $username, $password, $position, $type);
+            $userId = $this->repository->registerUser(
+                $nik,
+                $verifiedFullName,
+                $username,
+                $password,
+                $position
+            );
         } catch (\RuntimeException $e) {
             Response::json([
                 'status' => 'error',
@@ -152,7 +185,9 @@ final class RegisterController
 
         $token = JwtService::generate([
             'userId' => $userId,
-            'username' => $username
+            'username' => $username,
+            'role' => 'user',
+            'position' => $position
         ]);
 
         Response::json([
@@ -184,7 +219,7 @@ final class RegisterController
         if ($httpCode === 404) {
             Response::json([
                 'status' => 'error',
-                'message' => 'NIK tidak ditemukan di data pegawai'
+                'message' => 'NIK tidak ditemukan di data referensi'
             ], 404);
         }
 
@@ -201,6 +236,8 @@ final class RegisterController
             'status' => 'success',
             'data' => [
                 'name' => $employeeData['data']['name'],
+                'address' => $employeeData['data']['address'],
+                'position' => $employeeData['data']['position'],
             ]
         ]);
     }

@@ -15,21 +15,13 @@ CREATE TABLE IF NOT EXISTS users (
         'user'
     ) DEFAULT 'user',
     position ENUM(
-        'pegawai',
-        'non_pegawai'
-    ),
+        'asn',
+        'non_asn',
+        'public'
+    ) NOT NULL DEFAULT 'public',
     is_active BOOLEAN DEFAULT TRUE, -- Untuk jejak audit, sehingga sistem active/deactive user lebih baik daripada delete user
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS employees (
-    user_id INT UNSIGNED PRIMARY KEY,
-    employee_type ENUM(
-        'asn',
-        'non_asn'
-    ) NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS surveys (
@@ -46,7 +38,7 @@ CREATE TABLE IF NOT EXISTS surveys (
 
 CREATE TABLE IF NOT EXISTS survey_restrictions (
     survey_id INT UNSIGNED NOT NULL,
-    position ENUM('asn', 'non_asn', 'non_pegawai') NOT NULL,
+    position ENUM('asn', 'non_asn', 'public') NOT NULL,
     PRIMARY KEY (survey_id, position),
     FOREIGN KEY (survey_id) REFERENCES surveys(id) ON DELETE CASCADE
 );

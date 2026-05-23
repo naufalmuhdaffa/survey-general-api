@@ -16,18 +16,35 @@ final class ListSurveyRepository
         $this->pdo = Database::connection();
     }
 
-    public function getAllSurveys(): array
+    public function getAllSurveys(?string $position): array
     {
-        $stmt = $this->pdo->query("
-            SELECT id, title, description, opens_at, closes_at,
-                CASE
-                    WHEN opens_at IS NULL OR NOW() < opens_at THEN 'upcoming'
-                    WHEN NOW() BETWEEN opens_at AND closes_at THEN 'active'
-                    ELSE 'closed'
-                END AS status
-            FROM surveys
-            ORDER BY created_at DESC
+        $stmt = $this->pdo->prepare("
+        SELECT s.id, s.title, s.description, s.opens_at, s.closes_at,
+            CASE
+                WHEN s.opens_at IS NOT NULL AND NOW() < s.opens_at THEN 'upcoming'
+                WHEN s.closes_at IS NOT NULL AND NOW() > s.closes_at THEN 'closed'
+                ELSE 'active'
+            END AS status
+        FROM surveys s
+        WHERE (
+            NOT EXISTS (
+                SELECT 1
+                FROM survey_restrictions sr
+                WHERE sr.survey_id = s.id
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM survey_restrictions sr
+                WHERE sr.survey_id = s.id
+                AND sr.position IN ('public', ?)
+            )
+        )
+        AND (s.closes_at IS NULL OR NOW() <= s.closes_at)
+        ORDER BY s.created_at DESC
         ");
+
+        $stmt->execute([$position]);
+
         return $stmt->fetchAll();
     }
 }

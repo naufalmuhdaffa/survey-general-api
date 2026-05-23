@@ -21,9 +21,9 @@ final class DetailSurveyRepository
         $stmt = $this->pdo->prepare("
             SELECT id, title, description, opens_at, closes_at,
                 CASE
-                    WHEN opens_at IS NULL OR NOW() < opens_at THEN 'upcoming'
-                    WHEN NOW() BETWEEN opens_at AND closes_at THEN 'active'
-                    ELSE 'closed'
+                    WHEN opens_at IS NOT NULL AND NOW() < opens_at THEN 'upcoming'
+                    WHEN closes_at IS NOT NULL AND NOW() > closes_at THEN 'closed'
+                    ELSE 'active'
                 END AS status
             FROM surveys
             WHERE id = ?
@@ -65,5 +65,31 @@ final class DetailSurveyRepository
         ");
         $stmt->execute([$surveyId]);
         return array_column($stmt->fetchAll(), 'position');
+    }
+
+    public function canAccessSurvey(int $surveyId, ?string $position): bool
+    {
+        $stmt = $this->pdo->prepare("
+        SELECT COUNT(*)
+        FROM surveys s
+        WHERE s.id = ?
+        AND (
+            NOT EXISTS (
+                SELECT 1
+                FROM survey_restrictions sr
+                WHERE sr.survey_id = s.id
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM survey_restrictions sr
+                WHERE sr.survey_id = s.id
+                AND sr.position IN ('public', ?)
+            )
+        )
+    ");
+
+        $stmt->execute([$surveyId, $position]);
+
+        return (int) $stmt->fetchColumn() > 0;
     }
 }

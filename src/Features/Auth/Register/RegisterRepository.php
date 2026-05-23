@@ -32,25 +32,30 @@ final class RegisterRepository
         return $stmt->fetch();
     }
 
-    public function registerUser(string $nik, string $fullName, string $username, string $password, ?string $position, ?string $employeeType): int
-    {
-        $this->pdo->beginTransaction();
-
+    public function registerUser(
+        string $nik,
+        string $fullName,
+        string $username,
+        string $password,
+        string $position
+    ): int {
         try {
-            $stmt = $this->pdo->prepare("INSERT INTO users (nik, full_name, username, password, position) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$nik, $fullName, $username, password_hash($password, PASSWORD_DEFAULT), $position]);
-            $userId = (int) $this->pdo->lastInsertId();
+            $stmt = $this->pdo->prepare("
+            INSERT INTO users (nik, full_name, username, password, position)
+            VALUES (?, ?, ?, ?, ?)
+            ");
 
-            if ($position === 'pegawai') {
-                $stmt = $this->pdo->prepare("INSERT INTO employees (user_id, employee_type) VALUES (?, ?)");
-                $stmt->execute([$userId, $employeeType]);
-            }
+            $stmt->execute([
+                $nik,
+                $fullName,
+                $username,
+                password_hash($password, PASSWORD_DEFAULT),
+                $position
+            ]);
 
-            $this->pdo->commit();
-            return $userId;
-        } catch (\Exception $e) {
-            $this->pdo->rollBack();
-            throw new \RuntimeException('Registrasi gagal: ' . $e->getMessage());
+            return (int) $this->pdo->lastInsertId();
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Registrasi gagal');
         }
     }
 }

@@ -67,7 +67,8 @@ final class LoginController
         $token = JwtService::generate([
             'userId' => $identity['id'],
             'username' => $identity['username'],
-            'role' => $identity['role']
+            'role' => $identity['role'],
+            'position' => $identity['position']
         ]);
 
         Response::json([

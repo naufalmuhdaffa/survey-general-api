@@ -18,14 +18,22 @@ final class LoginRepository
 
     public function getUserByNik(string $nik): array|false
     {
-        $stmt = $this->pdo->prepare("SELECT id, username, password, role, is_active FROM users WHERE nik = ?");
+        $stmt = $this->pdo->prepare("
+            SELECT id, username, password, role, position, is_active
+            FROM users
+            WHERE nik = ?
+        ");
         $stmt->execute([$nik]);
         return $stmt->fetch();
     }
 
     public function getUserByUsername(string $username): array|false
     {
-        $stmt = $this->pdo->prepare("SELECT id, username, password, role, is_active FROM users WHERE username = ?");
+        $stmt = $this->pdo->prepare("
+            SELECT id, username, password, role, position, is_active
+            FROM users
+            WHERE username = ?
+        ");
         $stmt->execute([$username]);
         return $stmt->fetch();
     }

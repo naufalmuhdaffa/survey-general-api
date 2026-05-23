@@ -60,17 +60,24 @@ final class CreateSurveyController
             ], 422);
         }
 
-        $validPositions = ['asn', 'non_asn', 'non_pegawai'];
-        $positions = $data['positions'] ?? [];
+        $validPositions = ['public', 'asn', 'non_asn'];
+        $positions = $data['position'] ?? [];
 
-        if (!empty($positions)) {
-            foreach ($positions as $position) {
-                if (!\in_array($position, $validPositions)) {
-                    Response::json([
-                        'status' => 'error',
-                        'message' => 'Posisi tidak valid: ' . $position
-                    ], 422);
-                }
+        if (!\is_array($positions) || empty($positions)) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Posisi (position) tidak boleh kosong'
+            ], 422);
+        }
+
+        $positions = array_values(array_unique($positions));
+
+        foreach ($positions as $position) {
+            if (!\in_array($position, $validPositions, true)) {
+                Response::json([
+                    'status' => 'error',
+                    'message' => 'Posisi tidak valid: ' . $position
+                ], 422);
             }
         }
 

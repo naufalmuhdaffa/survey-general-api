@@ -38,7 +38,9 @@ final class UpdateSurveyController
             }
         }
 
-        if (empty($fields)) {
+        $hasPositions = \array_key_exists('position', $data);
+
+        if (empty($fields) && !$hasPositions) {
             Response::json([
                 'status' => 'error',
                 'message' => 'Tidak ada field yang diupdate'
@@ -76,20 +78,22 @@ final class UpdateSurveyController
             ], 422);
         }
 
-        $validPositions = ['asn', 'non_asn', 'non_pegawai'];
+        $validPositions = ['public', 'asn', 'non_asn'];
 
-        if (isset($data['positions'])) {
-            $positions = $data['positions'];
+        if ($hasPositions) {
+            $positions = $data['position'];
 
-            if (!\is_array($positions)) {
+            if (!\is_array($positions) || empty($positions)) {
                 Response::json([
                     'status' => 'error',
-                    'message' => 'Positions harus berupa array'
+                    'message' => 'Posisi (position) tidak boleh kosong'
                 ], 422);
             }
 
+            $positions = array_values(array_unique($positions));
+
             foreach ($positions as $position) {
-                if (!\in_array($position, $validPositions)) {
+                if (!\in_array($position, $validPositions, true)) {
                     Response::json([
                         'status' => 'error',
                         'message' => 'Posisi tidak valid: ' . $position
@@ -98,13 +102,12 @@ final class UpdateSurveyController
             }
 
             $this->repository->deleteRestrictions($surveyId);
-
-            if (!empty($positions)) {
-                $this->repository->createSurveyRestrictions($surveyId, $positions);
-            }
+            $this->repository->createSurveyRestrictions($surveyId, $positions);
         }
 
-        $this->repository->updateSurvey($surveyId, $fields);
+        if (!empty($fields)) {
+            $this->repository->updateSurvey($surveyId, $fields);
+        }
 
         Response::json([
             'status' => 'success',

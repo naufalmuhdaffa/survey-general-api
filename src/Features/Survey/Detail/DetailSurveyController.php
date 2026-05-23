@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Detail;
 
 use App\Helpers\Response;
+use App\Services\JwtService;
 
 final class DetailSurveyController
 {
@@ -17,6 +18,29 @@ final class DetailSurveyController
 
     public function detail(int $surveyId): void
     {
+        $position = null;
+        $token = JwtService::bearerToken();
+
+        if ($token !== null) {
+            $payload = JwtService::verify($token);
+
+            if ($payload === null) {
+                Response::json([
+                    'status' => 'error',
+                    'message' => 'Token tidak valid atau sudah kedaluwarsa'
+                ], 401);
+            }
+
+            $position = $payload->data->position ?? null;
+        }
+
+        if (!$this->repository->canAccessSurvey($surveyId, $position)) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Survei tidak ditemukan'
+            ], 404);
+        }
+        
         $survey = $this->repository->getSurveyById($surveyId);
 
         if (!$survey) {
