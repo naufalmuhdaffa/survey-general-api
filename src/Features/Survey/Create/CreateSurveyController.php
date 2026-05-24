@@ -6,15 +6,20 @@ namespace App\Features\Survey\Create;
 
 use App\Helpers\Response;
 use App\Middleware\AuthMiddleware;
+use App\Services\FileUploadService;
 use App\Services\JwtService;
+use InvalidArgumentException;
+use RuntimeException;
 
 final class CreateSurveyController
 {
     private CreateSurveyRepository $repository;
+    private FileUploadService $fileUploadService;
 
     public function __construct()
     {
         $this->repository = new CreateSurveyRepository();
+        $this->fileUploadService = new FileUploadService();
     }
 
     public function create(): void
@@ -85,7 +90,19 @@ final class CreateSurveyController
         $thumbnailPath = null;
 
         if (isset($_FILES['thumbnail']) && $_FILES['thumbnail']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $thumbnailPath = $this->storeThumbnail($_FILES['thumbnail']);
+            try {
+                $thumbnailPath = $this->fileUploadService->storeSurveyThumbnail($_FILES['thumbnail']);
+            } catch (InvalidArgumentException $e) {
+                Response::json([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ], 422);
+            } catch (RuntimeException $e) {
+                Response::json([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ], 500);
+            }
         }
 
         $surveyId = $this->repository->createSurvey(
@@ -106,63 +123,5 @@ final class CreateSurveyController
             'message' => 'Survei berhasil dibuat',
             'data' => ['id' => $surveyId]
         ], 201);
-    }
-
-    private function storeThumbnail(array $file): string
-    {
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Gagal upload thumbnail'
-            ], 422);
-        }
-
-        $maxSize = 2 * 1024 * 1024;
-
-        if ($file['size'] > $maxSize) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Ukuran file thumbnail maksimal 2MB'
-            ], 422);
-        }
-
-        $allowedMimeTypes = [
-            'image/png' => 'png',
-            'image/jpeg' => 'jpg',
-            'image/gif' => 'gif',
-            'image/webp' => 'webp',
-            'image/bmp' => 'bmp',
-            'image/vnd.microsoft.icon' => 'ico',
-            'image/tiff' => 'tiff',
-        ];
-
-        $mimeType = mime_content_type($file['tmp_name']);
-
-        if (!isset($allowedMimeTypes[$mimeType])) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Tipe file thumbnail hanya boleh berupa png, jpg, gif, webp, bmp, ico, dan tiff'
-            ], 422);
-        }
-
-        $extension = $allowedMimeTypes[$mimeType];
-        $fileName = date('YmdHis') . '-' . bin2hex(random_bytes(8)) . '.' . $extension;
-
-        $uploadDir = dirname(__DIR__, 5) . '/public/uploads/survey-thumbnails';
-
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $targetPath = $uploadDir . '/' . $fileName;
-
-        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Gagal memindahkan thumbnail'
-            ], 500);
-        }
-
-        return '/uploads/survey-thumbnails/' . $fileName;
     }
 }
