@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS surveys (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    instructions TEXT,
+    estimated_time INT UNSIGNED,
     thumbnail_path VARCHAR(255) NULL,
     created_by INT UNSIGNED NOT NULL,
     opens_at DATETIME,
