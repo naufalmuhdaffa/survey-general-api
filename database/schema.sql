@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS questions (
         'rating_scale',
         'file_upload'
     ) NOT NULL,
+    is_required BOOLEAN DEFAULT FALSE,
     question_order SMALLINT UNSIGNED NOT NULL DEFAULT 1,
     page SMALLINT UNSIGNED NOT NULL DEFAULT 1,
     parent_option_id INT UNSIGNED NULL, -- NULL artinya question tersebut selalu muncul, namun jika ada value maka question tersebut hanya muncul apabila opsi dengan id pada tabel options yang sama dengan parent_option_id dipilih sebagai jawaban
