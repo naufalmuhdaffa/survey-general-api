@@ -15,6 +15,7 @@ final class CreateQuestionRoutes implements RoutesInterface
             && $segments[0] === 'surveys'
             && is_numeric($segments[1])
             && $segments[2] === 'questions'
+            && !isset($segments[3])
             && $method === 'POST'
         ) {
             $controller = new CreateQuestionController();
