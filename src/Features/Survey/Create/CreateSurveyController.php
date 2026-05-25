@@ -42,6 +42,9 @@ final class CreateSurveyController
 
         $title = trim($data['title']);
         $description = isset($data['description']) ? trim($data['description']) : null;
+        $instructions = isset($data['instructions']) ? trim($data['instructions']) : null;
+        $instructions = $instructions === '' ? null : $instructions;
+        $estimatedTime = $this->normalizeEstimatedTime($data['estimated_time'] ?? null);
         $opensAt = $data['opens_at'] ?? null;
         $closesAt = $data['closes_at'] ?? null;
 
@@ -108,6 +111,8 @@ final class CreateSurveyController
         $surveyId = $this->repository->createSurvey(
             $title,
             $description,
+            $instructions,
+            $estimatedTime,
             $thumbnailPath,
             $createdBy,
             $opensAt,
@@ -123,5 +128,38 @@ final class CreateSurveyController
             'message' => 'Survei berhasil dibuat',
             'data' => ['id' => $surveyId]
         ], 201);
+    }
+
+    private function normalizeEstimatedTime(mixed $estimatedTime): ?int
+    {
+        if ($estimatedTime === null) {
+            return null;
+        }
+
+        if (\is_string($estimatedTime)) {
+            $estimatedTime = trim($estimatedTime);
+
+            if ($estimatedTime === '') {
+                return null;
+            }
+        }
+
+        if (!\is_int($estimatedTime) && !(\is_string($estimatedTime) && ctype_digit($estimatedTime))) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Estimasi waktu (estimated_time) harus berupa angka lebih dari 0'
+            ], 422);
+        }
+
+        $estimatedTime = (int) $estimatedTime;
+
+        if ($estimatedTime <= 0) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Estimasi waktu (estimated_time) harus berupa angka lebih dari 0'
+            ], 422);
+        }
+
+        return $estimatedTime;
     }
 }

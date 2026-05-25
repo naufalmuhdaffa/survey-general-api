@@ -29,7 +29,7 @@ final class UpdateSurveyController
 
         $data = json_decode(file_get_contents('php://input'), true);
 
-        $allowedFields = ['title', 'description', 'opens_at', 'closes_at'];
+        $allowedFields = ['title', 'description', 'instructions', 'estimated_time', 'opens_at', 'closes_at'];
         $fields = [];
 
         foreach ($allowedFields as $field) {
@@ -52,6 +52,15 @@ final class UpdateSurveyController
                 'status' => 'error',
                 'message' => 'Judul survei tidak boleh kosong'
             ], 422);
+        }
+
+        if (isset($fields['instructions'])) {
+            $fields['instructions'] = trim((string) $fields['instructions']);
+            $fields['instructions'] = $fields['instructions'] === '' ? null : $fields['instructions'];
+        }
+
+        if (isset($fields['estimated_time'])) {
+            $fields['estimated_time'] = $this->normalizeEstimatedTime($fields['estimated_time']);
         }
 
         $opensAt = $fields['opens_at'] ?? null;
@@ -113,5 +122,38 @@ final class UpdateSurveyController
             'status' => 'success',
             'message' => 'Survei berhasil diperbarui'
         ]);
+    }
+
+    private function normalizeEstimatedTime(mixed $estimatedTime): ?int
+    {
+        if ($estimatedTime === null) {
+            return null;
+        }
+
+        if (\is_string($estimatedTime)) {
+            $estimatedTime = trim($estimatedTime);
+
+            if ($estimatedTime === '') {
+                return null;
+            }
+        }
+
+        if (!\is_int($estimatedTime) && !(\is_string($estimatedTime) && ctype_digit($estimatedTime))) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Estimasi waktu (estimated_time) harus berupa angka lebih dari 0'
+            ], 422);
+        }
+
+        $estimatedTime = (int) $estimatedTime;
+
+        if ($estimatedTime <= 0) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Estimasi waktu (estimated_time) harus berupa angka lebih dari 0'
+            ], 422);
+        }
+
+        return $estimatedTime;
     }
 }

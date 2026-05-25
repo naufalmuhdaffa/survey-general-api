@@ -19,19 +19,23 @@ final class CreateSurveyRepository
     public function createSurvey(
         string $title,
         ?string $description,
+        ?string $instructions,
+        ?int $estimatedTime,
         ?string $thumbnailPath,
         int $createdBy,
         ?string $opensAt,
         ?string $closesAt
     ): int {
         $stmt = $this->pdo->prepare("
-            INSERT INTO surveys (title, description, thumbnail_path, created_by, opens_at, closes_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO surveys (title, description, instructions, estimated_time, thumbnail_path, created_by, opens_at, closes_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
             $title,
             $description,
+            $instructions,
+            $estimatedTime,
             $thumbnailPath,
             $createdBy,
             $opensAt,

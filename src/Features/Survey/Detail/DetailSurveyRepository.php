@@ -19,7 +19,7 @@ final class DetailSurveyRepository
     public function getSurveyById(int $id): array|false
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, title, description, 
+            SELECT id, title, description, instructions, estimated_time,
             COALESCE(thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path, 
             opens_at, closes_at,
                 CASE
