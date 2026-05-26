@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Question\Create;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
+use App\Services\PermissionService;
 use function in_array;
 
 final class CreateQuestionController
@@ -19,7 +19,7 @@ final class CreateQuestionController
 
     public function create(int $surveyId): void
     {
-        AuthMiddleware::handle('admin_opd', 'superadmin');
+        PermissionService::require('survey_question:create');
 
         if (!$this->repository->surveyExists($surveyId)) {
             Response::json([

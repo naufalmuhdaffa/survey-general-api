@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Survey\Thumbnail\Delete;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
 use App\Services\FileUploadService;
+use App\Services\PermissionService;
 
 final class DeleteThumbnailController
 {
@@ -21,7 +21,7 @@ final class DeleteThumbnailController
 
     public function delete(int $surveyId): void
     {
-        AuthMiddleware::handle('admin_opd', 'superadmin');
+        PermissionService::require('survey_thumbnail:delete');
 
         if (!$this->repository->surveyExists($surveyId)) {
             Response::json([

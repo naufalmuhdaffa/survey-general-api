@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Survey\Create;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
 use App\Services\FileUploadService;
 use App\Services\JwtService;
+use App\Services\PermissionService;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -24,7 +24,7 @@ final class CreateSurveyController
 
     public function create(): void
     {
-        AuthMiddleware::handle('admin_opd', 'superadmin');
+        PermissionService::require('survey:create');
 
         $token = JwtService::bearerToken();
         $payload = JwtService::verify($token);

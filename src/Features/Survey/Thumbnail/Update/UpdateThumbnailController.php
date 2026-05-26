@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Survey\Thumbnail\Update;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
 use App\Services\FileUploadService;
+use App\Services\PermissionService;
 
 final class UpdateThumbnailController
 {
@@ -21,7 +21,7 @@ final class UpdateThumbnailController
 
     public function update(int $surveyId): void
     {
-        AuthMiddleware::handle('admin_opd', 'superadmin');
+        PermissionService::require('survey_thumbnail:update');
 
         if (!$this->repository->surveyExists($surveyId)) {
             Response::json([

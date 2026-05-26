@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Question\Update;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
+use App\Services\PermissionService;
 use function in_array;
 
 final class UpdateQuestionController
@@ -19,7 +19,7 @@ final class UpdateQuestionController
 
     public function update(int $surveyId, int $questionId): void
     {
-        AuthMiddleware::handle('admin_opd', 'superadmin');
+        PermissionService::require('survey_question:update');
 
         if (!$this->repository->questionBelongsToSurvey($questionId, $surveyId)) {
             Response::json([

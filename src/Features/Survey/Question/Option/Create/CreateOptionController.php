@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Question\Option\Create;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
+use App\Services\PermissionService;
 
 final class CreateOptionController
 {
@@ -18,7 +18,7 @@ final class CreateOptionController
 
     public function create(int $surveyId, int $questionId): void
     {
-        AuthMiddleware::handle('admin_opd', 'superadmin');
+        PermissionService::require('survey_option:create');
 
         if (!$this->repository->questionExists($questionId)) {
             Response::json([
