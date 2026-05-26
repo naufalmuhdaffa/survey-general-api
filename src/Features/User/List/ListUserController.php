@@ -21,10 +21,15 @@ final class ListUserController
         AuthMiddleware::handle('superadmin');
 
         $users = $this->repository->getManagementUsers();
+        $formattedUsers = [];
+
+        foreach ($users as $user) {
+            $formattedUsers[] = $this->formatUser($user);
+        }
 
         Response::json([
             'status' => 'success',
-            'data' => \array_map([$this, 'formatUser'], $users)
+            'data' => $formattedUsers
         ]);
     }
 
