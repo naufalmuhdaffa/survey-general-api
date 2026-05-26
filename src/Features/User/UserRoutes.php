@@ -7,6 +7,7 @@ namespace App\Features\User;
 use App\Features\User\List\ListUserRoutes;
 use App\Features\User\Promotable\ListPromotableUserRoutes;
 use App\Features\User\Promote\PromoteUserRoutes;
+use App\Features\User\Status\UpdateUserStatusRoutes;
 use App\Interfaces\RoutesInterface;
 
 final class UserRoutes implements RoutesInterface
@@ -22,6 +23,10 @@ final class UserRoutes implements RoutesInterface
         }
 
         if (PromoteUserRoutes::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (UpdateUserStatusRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 
