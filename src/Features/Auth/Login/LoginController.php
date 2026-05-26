@@ -50,13 +50,6 @@ final class LoginController
             ], 401);
         }
 
-        if (!$identity['is_active']) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Akun Anda telah dinonaktifkan'
-            ], 403);
-        }
-
         if (!password_verify($password, $identity['password'])) {
             Response::json([
                 'status' => 'error',
