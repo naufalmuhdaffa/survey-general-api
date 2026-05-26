@@ -6,6 +6,7 @@ namespace App\Features\Survey;
 
 use App\Features\Survey\Create\CreateSurveyRoutes;
 use App\Features\Survey\List\ListSurveyRoutes;
+use App\Features\Survey\Page\PageRoutes;
 use App\Features\Survey\Question\QuestionRoutes;
 use App\Features\Survey\Response\ResponseRoutes;
 use App\Features\Survey\Thumbnail\ThumbnailRoutes;
@@ -30,6 +31,10 @@ final class SurveyRoutes implements RoutesInterface
         }
 
         if (QuestionRoutes::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (PageRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 
