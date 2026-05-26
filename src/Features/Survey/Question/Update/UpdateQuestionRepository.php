@@ -30,7 +30,7 @@ final class UpdateQuestionRepository
 
         foreach ($fields as $key => $value) {
             $setClauses[] = "$key = ?";
-            $values[] = $value;
+            $values[] = \is_bool($value) ? (int) $value : $value;
         }
 
         $values[] = $questionId;

@@ -34,15 +34,16 @@ final class CreateQuestionRepository
         int $surveyId,
         string $questionText,
         string $questionType,
+        bool $isRequired,
         int $questionOrder,
         int $page,
         ?int $parentOptionId
     ): int {
         $stmt = $this->pdo->prepare("
-            INSERT INTO questions (survey_id, question_text, question_type, question_order, page, parent_option_id)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO questions (survey_id, question_text, question_type, is_required, question_order, page, parent_option_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$surveyId, $questionText, $questionType, $questionOrder, $page, $parentOptionId]);
+        $stmt->execute([$surveyId, $questionText, $questionType, (int) $isRequired, $questionOrder, $page, $parentOptionId]);
         return (int) $this->pdo->lastInsertId();
     }
 }

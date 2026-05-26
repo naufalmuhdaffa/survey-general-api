@@ -54,8 +54,11 @@ final class DetailSurveyController
         $questions = $this->repository->getQuestionsBySurveyId($surveyId);
 
         foreach ($questions as &$question) {
+            $question['is_required'] = (bool) $question['is_required'];
             $question['options'] = $this->repository->getOptionsByQuestionId($question['id']);
         }
+
+        unset($question);
 
         $survey['questions'] = $questions;
 

@@ -59,10 +59,10 @@ final class CreateResponseController
         $data = json_decode(file_get_contents('php://input'), true);
         $answers = $data['answers'] ?? null;
 
-        if (!is_array($answers) || empty($answers)) {
+        if (!is_array($answers)) {
             Response::json([
                 'status' => 'error',
-                'message' => 'Field jawaban (answers) tidak boleh kosong'
+                'message' => 'Field jawaban (answers) harus berupa array'
             ], 422);
         }
 
@@ -133,7 +133,41 @@ final class CreateResponseController
             };
         }
 
+        $this->validateRequiredQuestions($questions, $answeredQuestionIds, $normalizedAnswers);
+
         return $normalizedAnswers;
+    }
+
+    private function validateRequiredQuestions(array $questions, array $answeredQuestionIds, array $normalizedAnswers): void
+    {
+        $selectedOptionIds = [];
+
+        foreach ($normalizedAnswers as $answer) {
+            if (isset($answer['option_id'])) {
+                $selectedOptionIds[(int) $answer['option_id']] = true;
+            }
+        }
+
+        foreach ($questions as $questionId => $question) {
+            if (!(bool) $question['is_required']) {
+                continue;
+            }
+
+            $parentOptionId = $question['parent_option_id'] !== null
+                ? (int) $question['parent_option_id']
+                : null;
+
+            if ($parentOptionId !== null && !isset($selectedOptionIds[$parentOptionId])) {
+                continue;
+            }
+
+            if (!isset($answeredQuestionIds[$questionId])) {
+                Response::json([
+                    'status' => 'error',
+                    'message' => 'Pertanyaan wajib belum dijawab: ' . $questionId
+                ], 422);
+            }
+        }
     }
 
     private function normalizeFreeTextAnswer(array $answer, int $questionId, array &$normalizedAnswers): void

@@ -71,7 +71,7 @@ final class CreateResponseRepository
     public function getQuestionsBySurveyId(int $surveyId): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, question_type
+            SELECT id, question_type, is_required, parent_option_id
             FROM questions
             WHERE survey_id = ?
         ");

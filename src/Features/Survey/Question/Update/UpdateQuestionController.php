@@ -6,6 +6,7 @@ namespace App\Features\Survey\Question\Update;
 
 use App\Helpers\Response;
 use App\Middleware\AuthMiddleware;
+use function in_array;
 
 final class UpdateQuestionController
 {
@@ -29,7 +30,7 @@ final class UpdateQuestionController
 
         $data = json_decode(file_get_contents('php://input'), true);
 
-        $allowedFields = ['question_text', 'question_type', 'question_order', 'page', 'parent_option_id'];
+        $allowedFields = ['question_text', 'question_type', 'is_required', 'question_order', 'page', 'parent_option_id'];
         $fields = [];
 
         foreach ($allowedFields as $field) {
@@ -79,6 +80,10 @@ final class UpdateQuestionController
             $fields['question_text'] = trim($fields['question_text']);
         }
 
+        if (isset($fields['is_required'])) {
+            $fields['is_required'] = $this->normalizeIsRequired($fields['is_required']);
+        }
+
         if (isset($fields['question_order'])) {
             $fields['question_order'] = (int) $fields['question_order'];
         }
@@ -97,5 +102,33 @@ final class UpdateQuestionController
             'status' => 'success',
             'message' => 'Pertanyaan berhasil diperbarui'
         ]);
+    }
+
+    private function normalizeIsRequired(mixed $isRequired): bool
+    {
+        if (\is_bool($isRequired)) {
+            return $isRequired;
+        }
+
+        if (\is_int($isRequired) && in_array($isRequired, [0, 1], true)) {
+            return (bool) $isRequired;
+        }
+
+        if (\is_string($isRequired)) {
+            $isRequired = strtolower(trim($isRequired));
+
+            if (in_array($isRequired, ['1', 'true'], true)) {
+                return true;
+            }
+
+            if (in_array($isRequired, ['0', 'false', ''], true)) {
+                return false;
+            }
+        }
+
+        Response::json([
+            'status' => 'error',
+            'message' => 'Field wajib diisi (is_required) harus berupa boolean'
+        ], 422);
     }
 }

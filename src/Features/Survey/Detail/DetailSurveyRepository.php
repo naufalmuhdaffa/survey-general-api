@@ -37,7 +37,7 @@ final class DetailSurveyRepository
     public function getQuestionsBySurveyId(int $surveyId): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, question_text, question_type, question_order, page, parent_option_id
+            SELECT id, question_text, question_type, is_required, question_order, page, parent_option_id
             FROM questions
             WHERE survey_id = ?
             ORDER BY page ASC, question_order ASC

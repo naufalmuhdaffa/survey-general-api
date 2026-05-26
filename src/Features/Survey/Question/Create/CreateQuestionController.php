@@ -6,6 +6,7 @@ namespace App\Features\Survey\Question\Create;
 
 use App\Helpers\Response;
 use App\Middleware\AuthMiddleware;
+use function in_array;
 
 final class CreateQuestionController
 {
@@ -30,6 +31,7 @@ final class CreateQuestionController
         $data = json_decode(file_get_contents('php://input'), true);
         $questionText = $data['question_text'] ?? null;
         $questionType = $data['question_type'] ?? null;
+        $isRequired = $this->normalizeIsRequired($data['is_required'] ?? false);
 
         if ($questionText === null || trim($questionText) === '') {
             Response::json([
@@ -63,6 +65,7 @@ final class CreateQuestionController
             $surveyId,
             trim($questionText),
             $questionType,
+            $isRequired,
             $questionOrder,
             $page,
             $parentOptionId
@@ -73,5 +76,33 @@ final class CreateQuestionController
             'message' => 'Pertanyaan berhasil ditambahkan',
             'data' => ['id' => $questionId]
         ], 201);
+    }
+
+    private function normalizeIsRequired(mixed $isRequired): bool
+    {
+        if (\is_bool($isRequired)) {
+            return $isRequired;
+        }
+
+        if (\is_int($isRequired) && in_array($isRequired, [0, 1], true)) {
+            return (bool) $isRequired;
+        }
+
+        if (\is_string($isRequired)) {
+            $isRequired = strtolower(trim($isRequired));
+
+            if (in_array($isRequired, ['1', 'true'], true)) {
+                return true;
+            }
+
+            if (in_array($isRequired, ['0', 'false', ''], true)) {
+                return false;
+            }
+        }
+
+        Response::json([
+            'status' => 'error',
+            'message' => 'Field wajib diisi (is_required) harus berupa boolean'
+        ], 422);
     }
 }
