@@ -6,6 +6,7 @@ namespace App;
 
 use App\Features\Auth\AuthRoutes;
 use App\Features\Survey\SurveyRoutes;
+use App\Features\User\UserRoutes;
 use App\Interfaces\RoutesInterface;
 
 final class Routes implements RoutesInterface
@@ -17,6 +18,10 @@ final class Routes implements RoutesInterface
         }
 
         if (SurveyRoutes::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (UserRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 
