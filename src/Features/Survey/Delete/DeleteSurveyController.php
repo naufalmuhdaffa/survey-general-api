@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Delete;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
+use App\Services\PermissionService;
 
 final class DeleteSurveyController
 {
@@ -18,7 +18,7 @@ final class DeleteSurveyController
 
     public function delete(int $surveyId): void
     {
-        AuthMiddleware::handle('admin_opd', 'superadmin');
+        PermissionService::require('survey:delete');
 
         if (!$this->repository->surveyExists($surveyId)) {
             Response::json([

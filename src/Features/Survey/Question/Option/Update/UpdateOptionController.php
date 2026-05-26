@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Question\Option\Update;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
+use App\Services\PermissionService;
 
 final class UpdateOptionController
 {
@@ -18,7 +18,7 @@ final class UpdateOptionController
 
     public function update(int $surveyId, int $questionId, int $optionId): void
     {
-        AuthMiddleware::handle('admin_opd', 'superadmin');
+        PermissionService::require('survey_option:update');
 
         if (!$this->repository->optionExists($optionId)) {
             Response::json([

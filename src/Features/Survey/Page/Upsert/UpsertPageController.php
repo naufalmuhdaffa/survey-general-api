@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Page\Upsert;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
+use App\Services\PermissionService;
 
 final class UpsertPageController
 {
@@ -18,7 +18,7 @@ final class UpsertPageController
 
     public function upsert(int $surveyId, int $page): void
     {
-        AuthMiddleware::handle('admin_opd', 'superadmin');
+        PermissionService::require('survey_page:update');
 
         if ($page < 1) {
             Response::json([
