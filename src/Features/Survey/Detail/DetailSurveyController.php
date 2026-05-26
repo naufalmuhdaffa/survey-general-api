@@ -51,16 +51,30 @@ final class DetailSurveyController
         }
 
         $survey['restrictions'] = $this->repository->getRestrictionsBySurveyId($surveyId);
+        $pages = $this->repository->getPagesBySurveyId($surveyId);
         $questions = $this->repository->getQuestionsBySurveyId($surveyId);
 
         foreach ($questions as &$question) {
+            $page = (int) $question['page'];
             $question['is_required'] = (bool) $question['is_required'];
             $question['options'] = $this->repository->getOptionsByQuestionId($question['id']);
+
+            if (!isset($pages[$page])) {
+                $pages[$page] = [
+                    'page' => $page,
+                    'section' => null,
+                    'questions' => [],
+                ];
+            }
+
+            $pages[$page]['questions'][] = $question;
         }
 
         unset($question);
+        ksort($pages);
 
         $survey['questions'] = $questions;
+        $survey['pages'] = array_values($pages);
 
         Response::json([
             'status' => 'success',

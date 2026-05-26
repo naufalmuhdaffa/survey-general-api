@@ -46,6 +46,31 @@ final class DetailSurveyRepository
         return $stmt->fetchAll();
     }
 
+    public function getPagesBySurveyId(int $surveyId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT page, section
+            FROM survey_pages
+            WHERE survey_id = ?
+            ORDER BY page ASC
+        ");
+        $stmt->execute([$surveyId]);
+
+        $pages = [];
+
+        foreach ($stmt->fetchAll() as $page) {
+            $pageNumber = (int) $page['page'];
+
+            $pages[$pageNumber] = [
+                'page' => $pageNumber,
+                'section' => $page['section'],
+                'questions' => [],
+            ];
+        }
+
+        return $pages;
+    }
+
     public function getOptionsByQuestionId(int $questionId): array
     {
         $stmt = $this->pdo->prepare("
