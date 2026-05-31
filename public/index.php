@@ -27,8 +27,18 @@ if ($_ENV['APP_ENV'] === 'development') {
 use App\Helpers\Response;
 use App\Routes;
 
-if ($_ENV['APP_ENV'] === 'development') {
-    header('Access-Control-Allow-Origin: *');
+if ($_ENV['APP_ENV'] === 'development' || !empty($_ENV['CORS_ALLOWED_ORIGINS'])) {
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? null;
+    $allowedOrigins = array_filter(array_map('trim', explode(',', $_ENV['CORS_ALLOWED_ORIGINS'] ?? '')));
+    $originAllowed = $origin !== null
+        && (($_ENV['APP_ENV'] === 'development' && empty($allowedOrigins)) || in_array($origin, $allowedOrigins, true));
+
+    if ($originAllowed) {
+        header('Access-Control-Allow-Origin: ' . $origin);
+        header('Access-Control-Allow-Credentials: true');
+        header('Vary: Origin');
+    }
+
     header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, Accept, X-API-Key');
     header('Access-Control-Max-Age: 86400');
