@@ -12,7 +12,7 @@ final class JwtService
     public static function generate(array $payload): string
     {
         $now = time();
-        $exp = $now + (int)($_ENV['JWT_EXPIRE'] ?? 3600);
+        $exp = $now + (int) ($_ENV['JWT_EXPIRE'] ?? 3600);
 
         return JWT::encode([
             'iat' => $now,
@@ -49,5 +49,10 @@ final class JwtService
         }
 
         return null;
+    }
+
+    public static function token(): ?string
+    {
+        return CookieService::token() ?? self::bearerToken();
     }
 }
