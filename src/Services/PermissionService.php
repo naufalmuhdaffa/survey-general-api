@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Database;
+use App\Repositories\PermissionRepository;
 use App\Helpers\Response;
 use App\Middleware\AuthMiddleware;
 
@@ -18,7 +18,9 @@ final class PermissionService
             return $user;
         }
 
-        if (!self::hasPermission((int) $user['id'], $permission)) {
+        $repository = new PermissionRepository();
+
+        if (!$repository->hasPermission((int) $user['id'], $permission)) {
             Response::json([
                 'status' => 'error',
                 'message' => 'Privilege tidak cukup: ' . $permission
@@ -26,18 +28,5 @@ final class PermissionService
         }
 
         return $user;
-    }
-
-    private static function hasPermission(int $userId, string $permission): bool
-    {
-        $stmt = Database::connection()->prepare("
-            SELECT COUNT(*)
-            FROM user_permissions up
-            JOIN permissions p ON p.id = up.permission_id
-            WHERE up.user_id = ?
-                AND p.code = ?
-        ");
-        $stmt->execute([$userId, $permission]);
-        return (int) $stmt->fetchColumn() > 0;
     }
 }
