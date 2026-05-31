@@ -6,7 +6,6 @@ namespace App\Features\Survey\Response\Create;
 
 use App\Helpers\Response;
 use App\Middleware\AuthMiddleware;
-use App\Services\JwtService;
 use Throwable;
 use function is_array;
 
@@ -21,12 +20,9 @@ final class CreateResponseController
 
     public function create(int $surveyId): void
     {
-        AuthMiddleware::handle('user');
-
-        $token = JwtService::bearerToken();
-        $payload = JwtService::verify($token);
-        $userId = (int) $payload->data->userId;
-        $position = (string) ($payload->data->position ?? '');
+        $user = AuthMiddleware::handle('user');
+        $userId = (int) $user['id'];
+        $position = (string) $user['position'];
 
         if (!$this->repository->surveyExists($surveyId)) {
             Response::json([
@@ -45,8 +41,8 @@ final class CreateResponseController
         if (!$this->repository->userCanAccessSurvey($surveyId, $position)) {
             Response::json([
                 'status' => 'error',
-                'message' => 'Survei tidak ditemukan'
-            ], 404);
+                'message' => 'Anda tidak memiliki hak akses untuk survei ini'
+            ], 403);
         }
 
         if ($this->repository->userHasSubmitted($surveyId, $userId)) {

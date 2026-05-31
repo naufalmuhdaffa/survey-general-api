@@ -6,7 +6,6 @@ namespace App\Features\Survey\Create;
 
 use App\Helpers\Response;
 use App\Services\FileUploadService;
-use App\Services\JwtService;
 use App\Services\PermissionService;
 use InvalidArgumentException;
 use RuntimeException;
@@ -24,11 +23,8 @@ final class CreateSurveyController
 
     public function create(): void
     {
-        PermissionService::require('survey:create');
-
-        $token = JwtService::bearerToken();
-        $payload = JwtService::verify($token);
-        $createdBy = (int) $payload->data->userId;
+        $user = PermissionService::require('survey:create');
+        $createdBy = (int) $user['id'];
 
         $isMultipart = str_starts_with($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data');
         $data = $isMultipart ? $_POST : json_decode(file_get_contents('php://input'), true);
