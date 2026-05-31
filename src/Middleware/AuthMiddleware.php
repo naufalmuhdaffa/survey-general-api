@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
-use App\Database;
+use App\Repositories\AuthRepository;
 use App\Helpers\Response;
 use App\Services\JwtService;
 
@@ -12,7 +12,7 @@ final class AuthMiddleware
 {
     public static function handle(string ...$roles): array
     {
-        $token = JwtService::bearerToken();
+        $token = JwtService::token();
 
         if ($token === null) {
             Response::json([
@@ -39,13 +39,8 @@ final class AuthMiddleware
             ], 401);
         }
 
-        $stmt = Database::connection()->prepare("
-            SELECT id, username, role, position, is_active
-            FROM users
-            WHERE id = ?
-        ");
-        $stmt->execute([$userId]);
-        $user = $stmt->fetch();
+        $repository = new AuthRepository();
+        $user = $repository->findById($userId);
 
         if (!$user) {
             Response::json([
@@ -54,7 +49,7 @@ final class AuthMiddleware
             ], 401);
         }
 
-        $effectiveRole = self::effectiveRole($user['role'], (bool) $user['is_active']);
+        $effectiveRole = self::determineRole($user['role'], (bool) $user['is_active']);
 
         if (!empty($roles) && !\in_array($effectiveRole, $roles, true)) {
             Response::json([
@@ -68,7 +63,7 @@ final class AuthMiddleware
         return $user;
     }
 
-    private static function effectiveRole(string $role, bool $isActive): string
+    private static function determineRole(string $role, bool $isActive): string
     {
         if (!$isActive && \in_array($role, ['superadmin', 'admin_opd'], true)) {
             return 'user';
