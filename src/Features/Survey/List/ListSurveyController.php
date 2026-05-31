@@ -19,7 +19,7 @@ final class ListSurveyController
     public function list(): void
     {
         $position = null;
-        $token = JwtService::bearerToken();
+        $token = JwtService::token();
 
         if ($token !== null) {
             $payload = JwtService::verify($token);

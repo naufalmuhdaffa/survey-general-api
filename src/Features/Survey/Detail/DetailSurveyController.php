@@ -19,7 +19,7 @@ final class DetailSurveyController
     public function detail(int $surveyId): void
     {
         $position = null;
-        $token = JwtService::bearerToken();
+        $token = JwtService::token();
 
         if ($token !== null) {
             $payload = JwtService::verify($token);
