@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Auth\Register;
 
 use App\Helpers\Response;
+use App\Services\CookieService;
 use App\Services\JwtService;
 
 final class RegisterController
@@ -189,11 +190,11 @@ final class RegisterController
             'role' => 'user',
             'position' => $position
         ]);
+        CookieService::setToken($token);
 
         Response::json([
             'status' => 'success',
-            'message' => 'Registrasi berhasil',
-            'token' => $token
+            'message' => 'Registrasi berhasil'
         ], 201);
     }
 

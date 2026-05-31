@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Auth\Login;
 
 use App\Helpers\Response;
+use App\Services\CookieService;
 use App\Services\JwtService;
 
 final class LoginController
@@ -63,11 +64,11 @@ final class LoginController
             'role' => $identity['role'],
             'position' => $identity['position']
         ]);
+        CookieService::setToken($token);
 
         Response::json([
             'status' => 'success',
-            'message' => 'Login berhasil',
-            'token' => $token
+            'message' => 'Login berhasil'
         ], 200);
     }
 }
