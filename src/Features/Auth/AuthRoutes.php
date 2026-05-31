@@ -6,6 +6,7 @@ namespace App\Features\Auth;
 
 use App\Features\Auth\Register\RegisterRoutes;
 use App\Features\Auth\Login\LoginRoutes;
+use App\Features\Auth\Logout\LogoutRoutes;
 use App\Interfaces\RoutesInterface;
 
 final class AuthRoutes implements RoutesInterface
@@ -17,6 +18,10 @@ final class AuthRoutes implements RoutesInterface
         }
 
         if (LoginRoutes::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (LogoutRoutes::dispatch($path, $method, $segments)) {
             return true;
         }
 
