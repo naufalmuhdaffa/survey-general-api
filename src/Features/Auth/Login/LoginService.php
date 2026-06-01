@@ -24,14 +24,13 @@ final class LoginService
         $username = isset($data['username']) && \is_string($data['username'])
             ? trim($data['username'])
             : '';
+        $password = isset($data['password']) && \is_string($data['password'])
+            ? $data['password']
+            : '';
 
         if ($nik === '' && $username === '') {
             throw new RuntimeException('NIK/username harus diisi', 422);
         }
-
-        $password = isset($data['password']) && \is_string($data['password'])
-            ? $data['password']
-            : '';
 
         if (trim($password) === '') {
             throw new RuntimeException('Password harus diisi', 422);
