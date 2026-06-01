@@ -64,6 +64,6 @@ final class UpdateThumbnailController
             'status' => 'success',
             'message' => 'Thumbnail survei berhasil diperbarui',
             'data' => ['thumbnail_path' => $newThumbnailPath]
-        ]);
+        ], 200);
     }
 }

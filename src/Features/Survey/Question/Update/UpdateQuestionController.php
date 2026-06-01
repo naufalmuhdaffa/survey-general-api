@@ -101,7 +101,7 @@ final class UpdateQuestionController
         Response::json([
             'status' => 'success',
             'message' => 'Pertanyaan berhasil diperbarui'
-        ]);
+        ], 200);
     }
 
     private function normalizeIsRequired(mixed $isRequired): bool

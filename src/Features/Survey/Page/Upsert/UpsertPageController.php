@@ -62,6 +62,6 @@ final class UpsertPageController
                 'page' => $page,
                 'section' => $section,
             ]
-        ]);
+        ], 200);
     }
 }

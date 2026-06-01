@@ -23,7 +23,7 @@ final class UserPermissionController
         Response::json([
             'status' => 'success',
             'data' => $this->repository->getAllPermissions()
-        ]);
+        ], 200);
     }
 
     public function getUserPermissions(int $userId): void
@@ -58,7 +58,7 @@ final class UserPermissionController
                 ],
                 'permissions' => $this->repository->getUserPermissionCodes($userId),
             ]
-        ]);
+        ], 200);
     }
 
     public function updateUserPermissions(int $userId): void
@@ -119,6 +119,6 @@ final class UserPermissionController
         Response::json([
             'status' => 'success',
             'message' => 'Privilege user berhasil diperbarui'
-        ]);
+        ], 200);
     }
 }

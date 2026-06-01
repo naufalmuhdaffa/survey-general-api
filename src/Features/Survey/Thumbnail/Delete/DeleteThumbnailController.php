@@ -55,6 +55,6 @@ final class DeleteThumbnailController
         Response::json([
             'status' => 'success',
             'message' => 'Thumbnail survei berhasil dihapus'
-        ]);
+        ], 200);
     }
 }

@@ -32,6 +32,6 @@ final class DeleteSurveyController
         Response::json([
             'status' => 'success',
             'message' => 'Survei berhasil dihapus'
-        ]);
+        ], 200);
     }
 }

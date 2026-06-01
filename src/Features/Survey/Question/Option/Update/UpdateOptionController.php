@@ -86,6 +86,6 @@ final class UpdateOptionController
         Response::json([
             'status' => 'success',
             'message' => 'Opsi jawaban berhasil diperbarui'
-        ]);
+        ], 200);
     }
 }

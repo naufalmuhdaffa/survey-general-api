@@ -39,6 +39,6 @@ final class ListSurveyController
         Response::json([
             'status' => 'success',
             'data' => $surveys
-        ]);
+        ], 200);
     }
 }

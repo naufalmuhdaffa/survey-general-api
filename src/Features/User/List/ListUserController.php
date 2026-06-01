@@ -30,7 +30,7 @@ final class ListUserController
         Response::json([
             'status' => 'success',
             'data' => $formattedUsers
-        ]);
+        ], 200);
     }
 
     private function formatUser(array $user): array

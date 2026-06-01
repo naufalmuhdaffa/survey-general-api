@@ -22,6 +22,6 @@ final class LogoutController
         Response::json([
             'status' => 'success',
             'message' => 'Logout berhasil'
-        ]);
+        ], 200);
     }
 }

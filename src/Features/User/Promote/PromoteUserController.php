@@ -51,6 +51,6 @@ final class PromoteUserController
         Response::json([
             'status' => 'success',
             'message' => 'User berhasil dipromosikan'
-        ]);
+        ], 200);
     }
 }

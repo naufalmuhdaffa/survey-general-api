@@ -39,6 +39,6 @@ final class DeleteOptionController
         Response::json([
             'status' => 'success',
             'message' => 'Opsi jawaban berhasil dihapus'
-        ]);
+        ], 200);
     }
 }

@@ -121,7 +121,7 @@ final class UpdateSurveyController
         Response::json([
             'status' => 'success',
             'message' => 'Survei berhasil diperbarui'
-        ]);
+        ], 200);
     }
 
     private function normalizeEstimatedTime(mixed $estimatedTime): ?int

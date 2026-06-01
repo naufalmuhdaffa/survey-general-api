@@ -240,6 +240,6 @@ final class RegisterController
                 'address' => $employeeData['data']['address'],
                 'position' => $employeeData['data']['position'],
             ]
-        ]);
+        ], 200);
     }
 }

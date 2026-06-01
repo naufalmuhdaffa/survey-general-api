@@ -32,6 +32,6 @@ final class DeleteQuestionController
         Response::json([
             'status' => 'success',
             'message' => 'Pertanyaan berhasil dihapus'
-        ]);
+        ], 200);
     }
 }

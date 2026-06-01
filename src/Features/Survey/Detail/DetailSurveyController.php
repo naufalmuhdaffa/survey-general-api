@@ -79,6 +79,6 @@ final class DetailSurveyController
         Response::json([
             'status' => 'success',
             'data' => $survey
-        ]);
+        ], 200);
     }
 }

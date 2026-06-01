@@ -65,7 +65,7 @@ final class UpdateUserStatusController
         Response::json([
             'status' => 'success',
             'message' => 'Status user berhasil diperbarui'
-        ]);
+        ], 200);
     }
 
     private function normalizeBoolean(mixed $value): bool
