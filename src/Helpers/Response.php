@@ -10,7 +10,7 @@ final class Response
      * @param mixed $data
      * @param array<string, string> $headers
      */
-    public static function json($data, int $code = 200, array $headers = []): never
+    public static function json($data, int $code, array $headers = []): never
     {
         http_response_code($code);
         header('Content-Type: application/json');
