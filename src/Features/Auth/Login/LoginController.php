@@ -6,64 +6,43 @@ namespace App\Features\Auth\Login;
 
 use App\Helpers\Response;
 use App\Services\CookieService;
-use App\Services\JwtService;
+use RuntimeException;
 
 final class LoginController
 {
-    private LoginRepository $repository;
+    private LoginService $service;
 
     public function __construct()
     {
-        $this->repository = new LoginRepository();
+        $this->service = new LoginService();
     }
 
     public function login(): void
     {
         $data = json_decode(file_get_contents("php://input"), true);
 
-        $nik = trim($data['nik'] ?? '');
-        $username = trim($data['username'] ?? '');
-
-        if ($nik === '' && $username === '') {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             Response::json([
                 'status' => 'error',
-                'message' => 'NIK/username harus diisi'
-            ], 422);
+                'message' => 'Format JSON tidak valid'
+            ], 400);
         }
 
-        if (!isset($data['password']) || trim($data['password']) === '') {
+        try {
+            $token = $this->service->login(\is_array($data) ? $data : []);
+        } catch (RuntimeException $e) {
+            $statusCode = $e->getCode();
+
+            if ($statusCode < 400 || $statusCode > 599) {
+                throw $e;
+            }
+
             Response::json([
                 'status' => 'error',
-                'message' => 'Password harus diisi'
-            ], 422);
+                'message' => $e->getMessage()
+            ], $statusCode);
         }
 
-        $password = $data['password'];
-
-        $identity = $nik !== ''
-            ? $this->repository->getUserByNik($nik)
-            : $this->repository->getUserByUsername($username);
-
-        if (!$identity) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'NIK/username atau password salah'
-            ], 401);
-        }
-
-        if (!password_verify($password, $identity['password'])) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'NIK/username atau password salah'
-            ], 401);
-        }
-
-        $token = JwtService::generate([
-            'userId' => $identity['id'],
-            'username' => $identity['username'],
-            'role' => $identity['role'],
-            'position' => $identity['position']
-        ]);
         CookieService::setToken($token);
 
         Response::json([
