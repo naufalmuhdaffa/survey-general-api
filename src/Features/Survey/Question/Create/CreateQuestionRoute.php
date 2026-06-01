@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Features\Survey\Question\Create;
+
+use App\Interfaces\RouteInterface;
+
+final class CreateQuestionRoute implements RouteInterface
+{
+    public static function dispatch(string $path, string $method, array $segments): bool
+    {
+        if (
+            isset($segments[0], $segments[1], $segments[2])
+            && $segments[0] === 'surveys'
+            && is_numeric($segments[1])
+            && $segments[2] === 'questions'
+            && !isset($segments[3])
+            && $method === 'POST'
+        ) {
+            $controller = new CreateQuestionController();
+            $controller->create((int) $segments[1]);
+            return true;
+        }
+
+        return false;
+    }
+}

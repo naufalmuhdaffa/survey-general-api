@@ -25,7 +25,7 @@ if ($_ENV['APP_ENV'] === 'development') {
 }
 
 use App\Helpers\Response;
-use App\Routes;
+use App\Route;
 
 if ($_ENV['APP_ENV'] === 'development' || !empty($_ENV['CORS_ALLOWED_ORIGINS'])) {
     $origin = $_SERVER['HTTP_ORIGIN'] ?? null;
@@ -66,7 +66,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 $segments = array_values(array_filter(explode('/', $path)));
 
 try {
-    if (Routes::dispatch($path, $method, $segments)) {
+    if (Route::dispatch($path, $method, $segments)) {
         exit;
     }
     
