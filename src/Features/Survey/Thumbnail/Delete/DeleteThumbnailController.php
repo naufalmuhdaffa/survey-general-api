@@ -5,52 +5,36 @@ declare(strict_types=1);
 namespace App\Features\Survey\Thumbnail\Delete;
 
 use App\Helpers\Response;
-use App\Services\FileUploadService;
 use App\Services\PermissionService;
+use RuntimeException;
 
 final class DeleteThumbnailController
 {
-    private DeleteThumbnailRepository $repository;
-    private FileUploadService $fileUploadService;
+    private DeleteThumbnailService $service;
 
     public function __construct()
     {
-        $this->repository = new DeleteThumbnailRepository();
-        $this->fileUploadService = new FileUploadService();
+        $this->service = new DeleteThumbnailService();
     }
 
     public function delete(int $surveyId): void
     {
         PermissionService::require('survey:update');
 
-        if (!$this->repository->surveyExists($surveyId)) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Survei tidak ditemukan'
-            ], 404);
-        }
-
-        $oldThumbnailPath = $this->repository->getThumbnailPath($surveyId);
-
-        if ($oldThumbnailPath === null) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Survei tidak memiliki thumbnail yang dapat dihapus'
-            ], 422);
-            return;
-        }
-
         try {
-            $this->repository->clearThumbnailPath($surveyId);
-        } catch (\RuntimeException $e) {
+            $this->service->delete($surveyId);
+        } catch (RuntimeException $e) {
+            $statusCode = $e->getCode();
+
+            if ($statusCode < 400 || $statusCode > 599) {
+                throw $e;
+            }
+
             Response::json([
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], 500);
-            return;
+            ], $statusCode);
         }
-
-        $this->fileUploadService->deletePublicUpload($oldThumbnailPath);
 
         Response::json([
             'status' => 'success',
