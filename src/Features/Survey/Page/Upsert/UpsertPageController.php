@@ -6,62 +6,49 @@ namespace App\Features\Survey\Page\Upsert;
 
 use App\Helpers\Response;
 use App\Services\PermissionService;
+use RuntimeException;
 
 final class UpsertPageController
 {
-    private UpsertPageRepository $repository;
+    private UpsertPageService $service;
 
     public function __construct()
     {
-        $this->repository = new UpsertPageRepository();
+        $this->service = new UpsertPageService();
     }
 
     public function upsert(int $surveyId, int $page): void
     {
         PermissionService::require('survey:update');
 
-        if ($page < 1) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Value halaman (page) harus lebih dari 0'
-            ], 422);
-        }
-
-        if (!$this->repository->surveyExists($surveyId)) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Survei tidak ditemukan'
-            ], 404);
-        }
-
         $data = json_decode(file_get_contents('php://input'), true);
 
-        if (!\is_array($data) || !\array_key_exists('section', $data)) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             Response::json([
                 'status' => 'error',
-                'message' => 'Field section harus dikirim'
-            ], 422);
+                'message' => 'Format JSON tidak valid'
+            ], 400);
         }
 
-        $section = trim((string) $data['section']);
-        $section = $section === '' ? null : $section;
+        try {
+            $pageSection = $this->service->upsert($surveyId, $page, $data);
+        } catch (RuntimeException $e) {
+            $statusCode = $e->getCode();
 
-        if ($section !== null && mb_strlen($section) > 255) {
+            if ($statusCode < 400 || $statusCode > 599) {
+                throw $e;
+            }
+
             Response::json([
                 'status' => 'error',
-                'message' => 'Section maksimal 255 karakter'
-            ], 422);
+                'message' => $e->getMessage()
+            ], $statusCode);
         }
-
-        $this->repository->upsertPageSection($surveyId, $page, $section);
 
         Response::json([
             'status' => 'success',
             'message' => 'Section halaman survei berhasil diperbarui',
-            'data' => [
-                'page' => $page,
-                'section' => $section,
-            ]
+            'data' => $pageSection
         ], 200);
     }
 }
