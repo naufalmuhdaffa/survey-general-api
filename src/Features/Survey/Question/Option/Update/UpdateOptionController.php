@@ -18,7 +18,7 @@ final class UpdateOptionController
 
     public function update(int $surveyId, int $questionId, int $optionId): void
     {
-        PermissionService::require('survey_option:update');
+        PermissionService::require('survey:update');
 
         if (!$this->repository->optionExists($optionId)) {
             Response::json([

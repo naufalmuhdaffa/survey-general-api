@@ -18,7 +18,7 @@ final class DeleteOptionController
 
     public function delete(int $surveyId, int $questionId, int $optionId): void
     {
-        PermissionService::require('survey_option:delete');
+        PermissionService::require('survey:update');
 
         if (!$this->repository->questionBelongsToSurvey($questionId, $surveyId)) {
             Response::json([

@@ -19,7 +19,7 @@ final class UpdateQuestionController
 
     public function update(int $surveyId, int $questionId): void
     {
-        PermissionService::require('survey_question:update');
+        PermissionService::require('survey:update');
 
         if (!$this->repository->questionBelongsToSurvey($questionId, $surveyId)) {
             Response::json([

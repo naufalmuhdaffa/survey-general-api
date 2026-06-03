@@ -21,7 +21,7 @@ final class UpdateThumbnailController
 
     public function update(int $surveyId): void
     {
-        PermissionService::require('survey_thumbnail:update');
+        PermissionService::require('survey:update');
 
         if (!$this->repository->surveyExists($surveyId)) {
             Response::json([

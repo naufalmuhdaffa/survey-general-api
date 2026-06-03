@@ -21,7 +21,7 @@ final class DeleteThumbnailController
 
     public function delete(int $surveyId): void
     {
-        PermissionService::require('survey_thumbnail:delete');
+        PermissionService::require('survey:update');
 
         if (!$this->repository->surveyExists($surveyId)) {
             Response::json([

@@ -19,7 +19,7 @@ final class CreateQuestionController
 
     public function create(int $surveyId): void
     {
-        PermissionService::require('survey_question:create');
+        PermissionService::require('survey:update');
 
         if (!$this->repository->surveyExists($surveyId)) {
             Response::json([

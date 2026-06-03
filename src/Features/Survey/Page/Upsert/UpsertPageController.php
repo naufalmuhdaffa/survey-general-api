@@ -18,7 +18,7 @@ final class UpsertPageController
 
     public function upsert(int $surveyId, int $page): void
     {
-        PermissionService::require('survey_page:update');
+        PermissionService::require('survey:update');
 
         if ($page < 1) {
             Response::json([

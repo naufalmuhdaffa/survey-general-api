@@ -18,7 +18,7 @@ final class CreateOptionController
 
     public function create(int $surveyId, int $questionId): void
     {
-        PermissionService::require('survey_option:create');
+        PermissionService::require('survey:update');
 
         if (!$this->repository->questionExists($questionId)) {
             Response::json([
