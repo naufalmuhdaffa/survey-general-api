@@ -19,7 +19,7 @@ final class UserPermissionRepository
     public function getAllPermissions(): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT code, name
+            SELECT code, description
             FROM permissions
             ORDER BY code ASC
         ");
