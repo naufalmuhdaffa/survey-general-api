@@ -11,6 +11,7 @@ use App\Features\Survey\Question\QuestionRoute;
 use App\Features\Survey\Response\ResponseRoute;
 use App\Features\Survey\Thumbnail\ThumbnailRoute;
 use App\Features\Survey\Detail\DetailSurveyRoute;
+use App\Features\Survey\Form\FormSurveyRoute;
 use App\Features\Survey\Update\UpdateSurveyRoute;
 use App\Features\Survey\Delete\DeleteSurveyRoute;
 use App\Interfaces\RouteInterface;
@@ -43,6 +44,10 @@ final class SurveyRoute implements RouteInterface
         }
 
         if (ThumbnailRoute::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (FormSurveyRoute::dispatch($path, $method, $segments)) {
             return true;
         }
 
