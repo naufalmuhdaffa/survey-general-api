@@ -6,103 +6,49 @@ namespace App\Features\Survey\Question\Create;
 
 use App\Helpers\Response;
 use App\Services\PermissionService;
-use function in_array;
+use RuntimeException;
 
 final class CreateQuestionController
 {
-    private CreateQuestionRepository $repository;
+    private CreateQuestionService $service;
 
     public function __construct()
     {
-        $this->repository = new CreateQuestionRepository();
+        $this->service = new CreateQuestionService();
     }
 
     public function create(int $surveyId): void
     {
         PermissionService::require('survey:update');
 
-        if (!$this->repository->surveyExists($surveyId)) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Survei tidak ditemukan'
-            ], 404);
-        }
-
         $data = json_decode(file_get_contents('php://input'), true);
-        $questionText = $data['question_text'] ?? null;
-        $questionType = $data['question_type'] ?? null;
-        $isRequired = $this->normalizeIsRequired($data['is_required'] ?? false);
 
-        if ($questionText === null || trim($questionText) === '') {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             Response::json([
                 'status' => 'error',
-                'message' => 'Teks pertanyaan harus diisi'
-            ], 422);
+                'message' => 'Format JSON tidak valid'
+            ], 400);
         }
 
-        $validTypes = ['free_text', 'radio_button', 'checkbox', 'dropdown', 'rating_scale', 'file_upload'];
+        try {
+            $questionId = $this->service->create($surveyId, \is_array($data) ? $data : []);
+        } catch (RuntimeException $e) {
+            $statusCode = $e->getCode();
 
-        if ($questionType === null || !\in_array($questionType, $validTypes)) {
+            if ($statusCode < 400 || $statusCode > 599) {
+                throw $e;
+            }
+
             Response::json([
                 'status' => 'error',
-                'message' => 'Tipe pertanyaan tidak valid'
-            ], 422);
+                'message' => $e->getMessage()
+            ], $statusCode);
         }
-
-        $page = isset($data['page']) ? (int) $data['page'] : 1;
-
-        if ($page < 1) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Page harus lebih dari 0'
-            ], 422);
-        }
-
-        $parentOptionId = isset($data['parent_option_id']) ? (int) $data['parent_option_id'] : null;
-        $questionOrder = $this->repository->getNextQuestionOrder($surveyId);
-
-        $questionId = $this->repository->createQuestion(
-            $surveyId,
-            trim($questionText),
-            $questionType,
-            $isRequired,
-            $questionOrder,
-            $page,
-            $parentOptionId
-        );
 
         Response::json([
             'status' => 'success',
             'message' => 'Pertanyaan berhasil ditambahkan',
             'data' => ['id' => $questionId]
         ], 201);
-    }
-
-    private function normalizeIsRequired(mixed $isRequired): bool
-    {
-        if (\is_bool($isRequired)) {
-            return $isRequired;
-        }
-
-        if (\is_int($isRequired) && in_array($isRequired, [0, 1], true)) {
-            return (bool) $isRequired;
-        }
-
-        if (\is_string($isRequired)) {
-            $isRequired = strtolower(trim($isRequired));
-
-            if (in_array($isRequired, ['1', 'true'], true)) {
-                return true;
-            }
-
-            if (in_array($isRequired, ['0', 'false', ''], true)) {
-                return false;
-            }
-        }
-
-        Response::json([
-            'status' => 'error',
-            'message' => 'Field wajib diisi (is_required) harus berupa boolean'
-        ], 422);
     }
 }
