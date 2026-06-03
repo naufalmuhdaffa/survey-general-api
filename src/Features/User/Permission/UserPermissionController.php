@@ -6,14 +6,15 @@ namespace App\Features\User\Permission;
 
 use App\Helpers\Response;
 use App\Middleware\AuthMiddleware;
+use RuntimeException;
 
 final class UserPermissionController
 {
-    private UserPermissionRepository $repository;
+    private UserPermissionService $service;
 
     public function __construct()
     {
-        $this->repository = new UserPermissionRepository();
+        $this->service = new UserPermissionService();
     }
 
     public function listPermissions(): void
@@ -22,7 +23,7 @@ final class UserPermissionController
 
         Response::json([
             'status' => 'success',
-            'data' => $this->repository->getAllPermissions()
+            'data' => $this->service->listPermissions()
         ], 200);
     }
 
@@ -30,34 +31,15 @@ final class UserPermissionController
     {
         AuthMiddleware::handle('superadmin');
 
-        $user = $this->repository->getUserById($userId);
-
-        if (!$user) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'User tidak ditemukan'
-            ], 404);
-        }
-
-        if ($user['role'] !== 'admin_opd') {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Privilege hanya bisa diatur untuk admin OPD'
-            ], 422);
+        try {
+            $data = $this->service->getUserPermissions($userId);
+        } catch (RuntimeException $e) {
+            $this->errorResponse($e);
         }
 
         Response::json([
             'status' => 'success',
-            'data' => [
-                'user' => [
-                    'id' => (int) $user['id'],
-                    'full_name' => $user['full_name'],
-                    'username' => $user['username'],
-                    'role' => $user['role'],
-                    'is_active' => (bool) $user['is_active'],
-                ],
-                'permissions' => $this->repository->getUserPermissionCodes($userId),
-            ]
+            'data' => $data
         ], 200);
     }
 
@@ -65,60 +47,38 @@ final class UserPermissionController
     {
         AuthMiddleware::handle('superadmin');
 
-        $user = $this->repository->getUserById($userId);
-
-        if (!$user) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'User tidak ditemukan'
-            ], 404);
-        }
-
-        if ($user['role'] !== 'admin_opd') {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Privilege hanya bisa diatur untuk admin OPD'
-            ], 422);
-        }
-
         $data = json_decode(file_get_contents('php://input'), true);
-        $permissions = $data['permissions'] ?? null;
 
-        if (!\is_array($permissions)) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             Response::json([
                 'status' => 'error',
-                'message' => 'permissions harus berupa array'
-            ], 422);
+                'message' => 'Format JSON tidak valid'
+            ], 400);
         }
 
-        $normalizedPermissions = [];
-
-        foreach ($permissions as $permission) {
-            if (!\is_string($permission) || trim($permission) === '') {
-                Response::json([
-                    'status' => 'error',
-                    'message' => 'permissions harus berisi privilege code yang valid'
-                ], 422);
-            }
-
-            $normalizedPermissions[] = trim($permission);
+        try {
+            $this->service->updateUserPermissions($userId, \is_array($data) ? $data : []);
+        } catch (RuntimeException $e) {
+            $this->errorResponse($e);
         }
-
-        $permissions = array_values(array_unique($normalizedPermissions));
-        $unknownPermissions = $this->repository->getUnknownPermissionCodes($permissions);
-
-        if (!empty($unknownPermissions)) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Privilege tidak ditemukan: ' . implode(', ', $unknownPermissions)
-            ], 422);
-        }
-
-        $this->repository->replaceUserPermissions($userId, $permissions);
 
         Response::json([
             'status' => 'success',
             'message' => 'Privilege user berhasil diperbarui'
         ], 200);
+    }
+
+    private function errorResponse(RuntimeException $e): never
+    {
+        $statusCode = $e->getCode();
+
+        if ($statusCode < 400 || $statusCode > 599) {
+            throw $e;
+        }
+
+        Response::json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], $statusCode);
     }
 }
