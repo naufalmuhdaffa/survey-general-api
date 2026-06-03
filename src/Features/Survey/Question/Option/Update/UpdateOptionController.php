@@ -6,82 +6,44 @@ namespace App\Features\Survey\Question\Option\Update;
 
 use App\Helpers\Response;
 use App\Services\PermissionService;
+use RuntimeException;
 
 final class UpdateOptionController
 {
-    private UpdateOptionRepository $repository;
+    private UpdateOptionService $service;
 
     public function __construct()
     {
-        $this->repository = new UpdateOptionRepository();
+        $this->service = new UpdateOptionService();
     }
 
     public function update(int $surveyId, int $questionId, int $optionId): void
     {
         PermissionService::require('survey:update');
 
-        if (!$this->repository->optionExists($optionId)) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Opsi jawaban tidak ditemukan'
-            ], 404);
-        }
-
-        if (!$this->repository->questionBelongsToSurvey($questionId, $surveyId)) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Pertanyaan tidak ditemukan di survei ini'
-            ], 404);
-        }
-
-        if (!$this->repository->optionBelongsToQuestion($optionId, $questionId)) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Opsi jawaban tidak ditemukan di pertanyaan ini'
-            ], 404);
-        }
-
         $data = json_decode(file_get_contents('php://input'), true);
 
-        $allowedFields = ['option_text', 'option_order'];
-        $fields = [];
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Format JSON tidak valid'
+            ], 400);
+        }
 
-        foreach ($allowedFields as $field) {
-            if (isset($data[$field])) {
-                $fields[$field] = $data[$field];
+        try {
+            $this->service->update($surveyId, $questionId, $optionId, \is_array($data) ? $data : []);
+        } catch (RuntimeException $e) {
+            $statusCode = $e->getCode();
+
+            if ($statusCode < 400 || $statusCode > 599) {
+                throw $e;
             }
-        }
 
-        if (empty($fields)) {
             Response::json([
                 'status' => 'error',
-                'message' => 'Tidak ada field yang diupdate'
-            ], 422);
+                'message' => $e->getMessage()
+            ], $statusCode);
         }
-
-        if (isset($fields['option_text']) && trim($fields['option_text']) === '') {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Teks opsi jawaban tidak boleh kosong'
-            ], 422);
-        }
-
-        if (isset($fields['option_order']) && (int) $fields['option_order'] < 1) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Value urutan opsi (option_order) harus lebih dari 0'
-            ], 422);
-        }
-
-        if (isset($fields['option_text'])) {
-            $fields['option_text'] = trim($fields['option_text']);
-        }
-
-        if (isset($fields['option_order'])) {
-            $fields['option_order'] = (int) $fields['option_order'];
-        }
-
-        $this->repository->updateOption($optionId, $fields);
 
         Response::json([
             'status' => 'success',
