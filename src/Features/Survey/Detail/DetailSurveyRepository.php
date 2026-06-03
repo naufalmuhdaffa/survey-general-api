@@ -34,55 +34,6 @@ final class DetailSurveyRepository
         return $stmt->fetch();
     }
 
-    public function getQuestionsBySurveyId(int $surveyId): array
-    {
-        $stmt = $this->pdo->prepare("
-            SELECT id, question_text, question_type, is_required, question_order, page, parent_option_id
-            FROM questions
-            WHERE survey_id = ?
-            ORDER BY page ASC, question_order ASC
-        ");
-        $stmt->execute([$surveyId]);
-        return $stmt->fetchAll();
-    }
-
-    public function getPagesBySurveyId(int $surveyId): array
-    {
-        $stmt = $this->pdo->prepare("
-            SELECT page, section
-            FROM survey_pages
-            WHERE survey_id = ?
-            ORDER BY page ASC
-        ");
-        $stmt->execute([$surveyId]);
-
-        $pages = [];
-
-        foreach ($stmt->fetchAll() as $page) {
-            $pageNumber = (int) $page['page'];
-
-            $pages[$pageNumber] = [
-                'page' => $pageNumber,
-                'section' => $page['section'],
-                'questions' => [],
-            ];
-        }
-
-        return $pages;
-    }
-
-    public function getOptionsByQuestionId(int $questionId): array
-    {
-        $stmt = $this->pdo->prepare("
-            SELECT id, option_text, option_order
-            FROM options
-            WHERE question_id = ?
-            ORDER BY option_order ASC
-        ");
-        $stmt->execute([$questionId]);
-        return $stmt->fetchAll();
-    }
-
     public function getRestrictionsBySurveyId(int $surveyId): array
     {
         $stmt = $this->pdo->prepare("
