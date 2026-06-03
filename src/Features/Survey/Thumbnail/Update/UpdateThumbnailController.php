@@ -5,59 +5,35 @@ declare(strict_types=1);
 namespace App\Features\Survey\Thumbnail\Update;
 
 use App\Helpers\Response;
-use App\Services\FileUploadService;
 use App\Services\PermissionService;
+use RuntimeException;
 
 final class UpdateThumbnailController
 {
-    private UpdateThumbnailRepository $repository;
-    private FileUploadService $fileUploadService;
+    private UpdateThumbnailService $service;
 
     public function __construct()
     {
-        $this->repository = new UpdateThumbnailRepository();
-        $this->fileUploadService = new FileUploadService();
+        $this->service = new UpdateThumbnailService();
     }
 
     public function update(int $surveyId): void
     {
         PermissionService::require('survey:update');
 
-        if (!$this->repository->surveyExists($surveyId)) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Survei tidak ditemukan'
-            ], 404);
-        }
-
-        if (!isset($_FILES['thumbnail'])) {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Thumbnail harus diupload'
-            ], 422);
-        }
-
         try {
-            $oldThumbnailPath = $this->repository->getThumbnailPath($surveyId);
-            $newThumbnailPath = $this->fileUploadService->storeSurveyThumbnail($_FILES['thumbnail']);
+            $newThumbnailPath = $this->service->update($surveyId, $_FILES['thumbnail'] ?? null);
+        } catch (RuntimeException $e) {
+            $statusCode = $e->getCode();
 
-            try {
-                $this->repository->updateThumbnailPath($surveyId, $newThumbnailPath);
-            } catch (\RuntimeException $e) {
-                $this->fileUploadService->deletePublicUpload($newThumbnailPath);
+            if ($statusCode < 400 || $statusCode > 599) {
                 throw $e;
             }
-            $this->fileUploadService->deletePublicUpload($oldThumbnailPath);
-        } catch (\InvalidArgumentException $e) {
+
             Response::json([
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], 422);
-        } catch (\RuntimeException $e) {
-            Response::json([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
+            ], $statusCode);
         }
 
         Response::json([
