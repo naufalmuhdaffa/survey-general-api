@@ -6,28 +6,35 @@ namespace App\Features\Survey\Question\Delete;
 
 use App\Helpers\Response;
 use App\Services\PermissionService;
+use RuntimeException;
 
 final class DeleteQuestionController
 {
-    private DeleteQuestionRepository $repository;
+    private DeleteQuestionService $service;
 
     public function __construct()
     {
-        $this->repository = new DeleteQuestionRepository();
+        $this->service = new DeleteQuestionService();
     }
 
     public function delete(int $surveyId, int $questionId): void
     {
         PermissionService::require('survey:update');
 
-        if (!$this->repository->questionBelongsToSurvey($questionId, $surveyId)) {
+        try {
+            $this->service->delete($surveyId, $questionId);
+        } catch (RuntimeException $e) {
+            $statusCode = $e->getCode();
+
+            if ($statusCode < 400 || $statusCode > 599) {
+                throw $e;
+            }
+
             Response::json([
                 'status' => 'error',
-                'message' => 'Pertanyaan tidak ditemukan di survei ini'
-            ], 404);
+                'message' => $e->getMessage()
+            ], $statusCode);
         }
-
-        $this->repository->deleteQuestion($questionId);
 
         Response::json([
             'status' => 'success',
