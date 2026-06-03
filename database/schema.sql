@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS permissions (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(100) NOT NULL UNIQUE,
-    name VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -41,20 +41,11 @@ CREATE TABLE IF NOT EXISTS user_permissions (
     FOREIGN KEY (permission_id) REFERENCES permissions (id) ON DELETE CASCADE
 );
 
-INSERT IGNORE INTO permissions (code, name) VALUES
+INSERT IGNORE INTO permissions (code, description) VALUES
 ('survey:read', 'Melihat survei di halaman manajemen'),
 ('survey:create', 'Membuat survei'),
 ('survey:update', 'Mengubah survei'),
-('survey:delete', 'Menghapus survei'),
-('survey_page:update', 'Mengubah halaman survei'),
-('survey_thumbnail:update', 'Mengubah thumbnail survei'),
-('survey_thumbnail:delete', 'Menghapus thumbnail survei'),
-('survey_question:create', 'Membuat pertanyaan survei'),
-('survey_question:update', 'Mengubah pertanyaan survei'),
-('survey_question:delete', 'Menghapus pertanyaan survei'),
-('survey_option:create', 'Membuat opsi pertanyaan survei'),
-('survey_option:update', 'Mengubah opsi pertanyaan survei'),
-('survey_option:delete', 'Menghapus opsi pertanyaan survei');
+('survey:delete', 'Menghapus survei');
 
 CREATE TABLE IF NOT EXISTS surveys (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
