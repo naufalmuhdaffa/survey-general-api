@@ -6,14 +6,15 @@ namespace App\Features\User\Promote;
 
 use App\Helpers\Response;
 use App\Middleware\AuthMiddleware;
+use RuntimeException;
 
 final class PromoteUserController
 {
-    private PromoteUserRepository $repository;
+    private PromoteUserService $service;
 
     public function __construct()
     {
-        $this->repository = new PromoteUserRepository();
+        $this->service = new PromoteUserService();
     }
 
     public function promote(int $userId): void
@@ -21,32 +22,28 @@ final class PromoteUserController
         AuthMiddleware::handle('superadmin');
 
         $data = json_decode(file_get_contents('php://input'), true);
-        $role = trim((string) ($data['role'] ?? ''));
 
-        if ($role !== 'admin_opd') {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             Response::json([
                 'status' => 'error',
-                'message' => 'Promote hanya boleh ke role admin_opd'
-            ], 422);
+                'message' => 'Format JSON tidak valid'
+            ], 400);
         }
 
-        $user = $this->repository->getUserById($userId);
+        try {
+            $this->service->promote($userId, \is_array($data) ? $data : []);
+        } catch (RuntimeException $e) {
+            $statusCode = $e->getCode();
 
-        if (!$user) {
+            if ($statusCode < 400 || $statusCode > 599) {
+                throw $e;
+            }
+
             Response::json([
                 'status' => 'error',
-                'message' => 'User tidak ditemukan'
-            ], 404);
+                'message' => $e->getMessage()
+            ], $statusCode);
         }
-
-        if ($user['role'] !== 'user') {
-            Response::json([
-                'status' => 'error',
-                'message' => 'Hanya user biasa yang bisa dipromosikan'
-            ], 422);
-        }
-
-        $this->repository->updateRole($userId, $role);
 
         Response::json([
             'status' => 'success',
