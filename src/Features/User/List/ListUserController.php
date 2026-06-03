@@ -9,42 +9,20 @@ use App\Middleware\AuthMiddleware;
 
 final class ListUserController
 {
-    private ListUserRepository $repository;
+    private ListUserService $service;
 
     public function __construct()
     {
-        $this->repository = new ListUserRepository();
+        $this->service = new ListUserService();
     }
 
     public function list(): void
     {
         AuthMiddleware::handle('superadmin');
 
-        $users = $this->repository->getManagementUsers();
-        $formattedUsers = [];
-
-        foreach ($users as $user) {
-            $formattedUsers[] = $this->formatUser($user);
-        }
-
         Response::json([
             'status' => 'success',
-            'data' => $formattedUsers
+            'data' => $this->service->listManagementUsers()
         ], 200);
-    }
-
-    private function formatUser(array $user): array
-    {
-        return [
-            'id' => (int) $user['id'],
-            'nik' => $user['nik'],
-            'full_name' => $user['full_name'],
-            'username' => $user['username'],
-            'role' => $user['role'],
-            'position' => $user['position'],
-            'is_active' => (bool) $user['is_active'],
-            'created_at' => $user['created_at'],
-            'updated_at' => $user['updated_at'],
-        ];
     }
 }
