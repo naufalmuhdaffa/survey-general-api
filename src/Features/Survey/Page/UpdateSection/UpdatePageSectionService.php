@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Survey\Page\Upsert;
+namespace App\Features\Survey\Page\UpdateSection;
 
 use RuntimeException;
 
-final class UpsertPageService
+final class UpdatePageSectionService
 {
-    private UpsertPageRepository $repository;
+    private UpdatePageSectionRepository $repository;
 
     public function __construct()
     {
-        $this->repository = new UpsertPageRepository();
+        $this->repository = new UpdatePageSectionRepository();
     }
 
-    public function upsert(int $surveyId, int $page, mixed $data): array
+    public function update(int $surveyId, int $page, mixed $data): array
     {
         if ($page < 1) {
             throw new RuntimeException('Value halaman (page) harus lebih dari 0', 422);

@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Survey\Page\Upsert;
+namespace App\Features\Survey\Page\UpdateSection;
 
 use App\Helpers\Response;
 use App\Services\PermissionService;
 use RuntimeException;
 
-final class UpsertPageController
+final class UpdatePageSectionController
 {
-    private UpsertPageService $service;
+    private UpdatePageSectionService $service;
 
     public function __construct()
     {
-        $this->service = new UpsertPageService();
+        $this->service = new UpdatePageSectionService();
     }
 
-    public function upsert(int $surveyId, int $page): void
+    public function update(int $surveyId, int $page): void
     {
         PermissionService::require('survey:update');
 
@@ -31,7 +31,7 @@ final class UpsertPageController
         }
 
         try {
-            $pageSection = $this->service->upsert($surveyId, $page, $data);
+            $pageSection = $this->service->update($surveyId, $page, $data);
         } catch (RuntimeException $e) {
             $statusCode = $e->getCode();
 

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Survey\Page\Upsert;
+namespace App\Features\Survey\Page\UpdateSection;
 
 use App\Database;
 use PDO;
 
-final class UpsertPageRepository
+final class UpdatePageSectionRepository
 {
     private PDO $pdo;
 

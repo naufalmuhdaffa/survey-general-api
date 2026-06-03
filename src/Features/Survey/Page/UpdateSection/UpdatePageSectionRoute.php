@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Survey\Page\Upsert;
+namespace App\Features\Survey\Page\UpdateSection;
 
 use App\Interfaces\RouteInterface;
 
-final class UpsertPageRoute implements RouteInterface
+final class UpdatePageSectionRoute implements RouteInterface
 {
     public static function dispatch(string $path, string $method, array $segments): bool
     {
@@ -19,7 +19,7 @@ final class UpsertPageRoute implements RouteInterface
             && !isset($segments[4])
             && $method === 'PUT'
         ) {
-            (new UpsertPageController())->upsert((int) $segments[1], (int) $segments[3]);
+            (new UpdatePageSectionController())->update((int) $segments[1], (int) $segments[3]);
             return true;
         }
 
