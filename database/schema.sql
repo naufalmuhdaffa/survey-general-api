@@ -3,17 +3,25 @@ CREATE DATABASE IF NOT EXISTS survey_db;
 
 USE survey_db;
 
+CREATE TABLE IF NOT EXISTS roles (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO roles (id, name) VALUES
+(1, 'user'),
+(2, 'admin_opd'),
+(3, 'superadmin');
+
 CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nik CHAR(16) NOT NULL UNIQUE,
     full_name VARCHAR(255) NOT NULL,
     username VARCHAR(25) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM(
-        'superadmin',
-        'admin_opd',
-        'user'
-    ) DEFAULT 'user',
+    role_id INT UNSIGNED NOT NULL DEFAULT 1,
     position ENUM(
         'asn',
         'non_asn',
@@ -21,31 +29,49 @@ CREATE TABLE IF NOT EXISTS users (
     ) NOT NULL DEFAULT 'public',
     is_active BOOLEAN DEFAULT TRUE, -- Untuk jejak audit, sehingga sistem active/deactive user lebih baik daripada delete user
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (role_id) REFERENCES roles (id)
 );
 
-CREATE TABLE IF NOT EXISTS permissions (
+CREATE TABLE IF NOT EXISTS privileges (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(100) NOT NULL UNIQUE,
-    description VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS user_permissions (
-    user_id INT UNSIGNED NOT NULL,
-    permission_id INT UNSIGNED NOT NULL,
+CREATE TABLE IF NOT EXISTS role_privileges (
+    role_id INT UNSIGNED NOT NULL,
+    privilege_id INT UNSIGNED NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, permission_id),
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (permission_id) REFERENCES permissions (id) ON DELETE CASCADE
+    PRIMARY KEY (role_id, privilege_id),
+    FOREIGN KEY (role_id) REFERENCES roles (id) ON DELETE CASCADE,
+    FOREIGN KEY (privilege_id) REFERENCES privileges (id) ON DELETE CASCADE
 );
 
-INSERT IGNORE INTO permissions (code, description) VALUES
-('survey:read', 'Melihat survei di halaman manajemen'),
-('survey:create', 'Membuat survei'),
-('survey:update', 'Mengubah survei'),
-('survey:delete', 'Menghapus survei');
+INSERT IGNORE INTO privileges (name) VALUES
+('survey:read'),
+('survey:create'),
+('survey:update'),
+('survey:delete'),
+('user:read'),
+('user:update'),
+('role:read'),
+('role:create'),
+('role:update'),
+('role:delete');
+
+INSERT IGNORE INTO role_privileges (role_id, privilege_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN privileges p ON p.name IN ('survey:read', 'survey:create', 'survey:update', 'survey:delete')
+WHERE r.name IN ('admin_opd', 'superadmin');
+
+INSERT IGNORE INTO role_privileges (role_id, privilege_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN privileges p ON p.name IN ('user:read', 'user:update', 'role:read', 'role:create', 'role:update', 'role:delete')
+WHERE r.name = 'superadmin';
 
 CREATE TABLE IF NOT EXISTS surveys (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -54,6 +80,7 @@ CREATE TABLE IF NOT EXISTS surveys (
     instructions TEXT,
     estimated_time INT UNSIGNED,
     thumbnail_path VARCHAR(255) NULL,
+    status ENUM('draft', 'upcoming', 'open', 'closed') NOT NULL DEFAULT 'draft',
     created_by INT UNSIGNED NOT NULL,
     opens_at DATETIME,
     closes_at DATETIME,
