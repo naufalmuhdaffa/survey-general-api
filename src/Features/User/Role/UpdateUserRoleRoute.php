@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Features\User\Promote;
+namespace App\Features\User\Role;
 
 use App\Interfaces\RouteInterface;
 
-final class PromoteUserRoute implements RouteInterface
+final class UpdateUserRoleRoute implements RouteInterface
 {
     public static function dispatch(string $path, string $method, array $segments): bool
     {
@@ -18,8 +18,8 @@ final class PromoteUserRoute implements RouteInterface
             && !isset($segments[3])
             && $method === 'PUT'
         ) {
-            $controller = new PromoteUserController();
-            $controller->promote((int) $segments[1]);
+            $controller = new UpdateUserRoleController();
+            $controller->update((int) $segments[1]);
             return true;
         }
 

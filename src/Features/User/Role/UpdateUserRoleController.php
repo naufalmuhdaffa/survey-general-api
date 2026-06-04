@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace App\Features\User\Promote;
+namespace App\Features\User\Role;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
+use App\Services\PrivilegeService;
 use RuntimeException;
 
-final class PromoteUserController
+final class UpdateUserRoleController
 {
-    private PromoteUserService $service;
+    private UpdateUserRoleService $service;
 
     public function __construct()
     {
-        $this->service = new PromoteUserService();
+        $this->service = new UpdateUserRoleService();
     }
 
-    public function promote(int $userId): void
+    public function update(int $userId): void
     {
-        AuthMiddleware::handle('superadmin');
+        PrivilegeService::require('user:update');
 
         $data = json_decode(file_get_contents('php://input'), true);
 
@@ -31,7 +31,7 @@ final class PromoteUserController
         }
 
         try {
-            $this->service->promote($userId, \is_array($data) ? $data : []);
+            $this->service->update($userId, \is_array($data) ? $data : []);
         } catch (RuntimeException $e) {
             $statusCode = $e->getCode();
 
@@ -47,7 +47,7 @@ final class PromoteUserController
 
         Response::json([
             'status' => 'success',
-            'message' => 'User berhasil dipromosikan'
+            'message' => 'Role user berhasil diperbarui'
         ], 200);
     }
 }
