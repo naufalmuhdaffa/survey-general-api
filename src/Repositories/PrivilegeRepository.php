@@ -7,7 +7,7 @@ namespace App\Repositories;
 use App\Database;
 use PDO;
 
-final class PermissionRepository
+final class PrivilegeRepository
 {
     private PDO $pdo;
 
@@ -16,16 +16,16 @@ final class PermissionRepository
         $this->pdo = Database::connection();
     }
 
-    public function hasPermission(int $userId, string $permission): bool
+    public function hasPrivilege(int $roleId, string $privilege): bool
     {
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*)
-            FROM user_permissions up
-            JOIN permissions p ON p.id = up.permission_id
-            WHERE up.user_id = ?
-                AND p.code = ?
+            FROM role_privileges rp
+            JOIN privileges p ON p.id = rp.privilege_id
+            WHERE rp.role_id = ?
+                AND p.name = ?
         ");
-        $stmt->execute([$userId, $permission]);
+        $stmt->execute([$roleId, $privilege]);
         return (int) $stmt->fetchColumn() > 0;
     }
 }
