@@ -50,6 +50,9 @@ final class AuthMiddleware
         }
 
         $effectiveRole = self::determineRole($user['role'], (bool) $user['is_active']);
+        $effectiveRoleId = $effectiveRole === $user['role']
+            ? (int) $user['role_id']
+            : (int) $user['default_role_id'];
 
         if (!empty($roles) && !\in_array($effectiveRole, $roles, true)) {
             Response::json([
@@ -59,13 +62,14 @@ final class AuthMiddleware
         }
 
         $user['effective_role'] = $effectiveRole;
+        $user['effective_role_id'] = $effectiveRoleId;
 
         return $user;
     }
 
     private static function determineRole(string $role, bool $isActive): string
     {
-        if (!$isActive && \in_array($role, ['superadmin', 'admin_opd'], true)) {
+        if (!$isActive && $role !== 'user') {
             return 'user';
         }
 
