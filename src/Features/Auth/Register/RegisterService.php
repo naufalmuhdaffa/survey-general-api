@@ -94,6 +94,7 @@ final class RegisterService
         return JwtService::generate([
             'userId' => $userId,
             'username' => $username,
+            'roleId' => 1,
             'role' => 'user',
             'position' => $position
         ]);

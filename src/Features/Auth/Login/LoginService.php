@@ -47,6 +47,7 @@ final class LoginService
         return JwtService::generate([
             'userId' => $identity['id'],
             'username' => $identity['username'],
+            'roleId' => $identity['role_id'],
             'role' => $identity['role'],
             'position' => $identity['position']
         ]);
