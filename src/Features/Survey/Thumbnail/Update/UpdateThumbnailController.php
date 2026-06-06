@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Thumbnail\Update;
 
 use App\Helpers\Response;
-use App\Services\PermissionService;
+use App\Services\PrivilegeService;
 use RuntimeException;
 
 final class UpdateThumbnailController
@@ -19,7 +19,7 @@ final class UpdateThumbnailController
 
     public function update(int $surveyId): void
     {
-        PermissionService::require('survey:update');
+        PrivilegeService::require('survey:update');
 
         try {
             $newThumbnailPath = $this->service->update($surveyId, $_FILES['thumbnail'] ?? null);

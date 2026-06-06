@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Question\Option\Update;
 
 use App\Helpers\Response;
-use App\Services\PermissionService;
+use App\Services\PrivilegeService;
 use RuntimeException;
 
 final class UpdateOptionController
@@ -19,7 +19,7 @@ final class UpdateOptionController
 
     public function update(int $surveyId, int $questionId, int $optionId): void
     {
-        PermissionService::require('survey:update');
+        PrivilegeService::require('survey:update');
 
         $data = json_decode(file_get_contents('php://input'), true);
 

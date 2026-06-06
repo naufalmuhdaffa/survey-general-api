@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Create;
 
 use App\Helpers\Response;
-use App\Services\PermissionService;
+use App\Services\PrivilegeService;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -20,7 +20,7 @@ final class CreateSurveyController
 
     public function create(): void
     {
-        $user = PermissionService::require('survey:create');
+        $user = PrivilegeService::require('survey:create');
         $createdBy = (int) $user['id'];
 
         $isMultipart = str_starts_with($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data');

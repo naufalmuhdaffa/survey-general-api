@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Survey\Question\Delete;
 
 use App\Helpers\Response;
-use App\Services\PermissionService;
+use App\Services\PrivilegeService;
 use RuntimeException;
 
 final class DeleteQuestionController
@@ -19,7 +19,7 @@ final class DeleteQuestionController
 
     public function delete(int $surveyId, int $questionId): void
     {
-        PermissionService::require('survey:update');
+        PrivilegeService::require('survey:update');
 
         try {
             $this->service->delete($surveyId, $questionId);
