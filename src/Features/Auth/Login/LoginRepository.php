@@ -19,9 +19,10 @@ final class LoginRepository
     public function getUserByNik(string $nik): array|false
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, username, password, role, position, is_active
-            FROM users
-            WHERE nik = ?
+            SELECT u.id, u.username, u.password, u.role_id, r.name AS role, u.position, u.is_active
+            FROM users u
+            JOIN roles r ON r.id = u.role_id
+            WHERE u.nik = ?
         ");
         $stmt->execute([$nik]);
         return $stmt->fetch();
@@ -30,9 +31,10 @@ final class LoginRepository
     public function getUserByUsername(string $username): array|false
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, username, password, role, position, is_active
-            FROM users
-            WHERE username = ?
+            SELECT u.id, u.username, u.password, u.role_id, r.name AS role, u.position, u.is_active
+            FROM users u
+            JOIN roles r ON r.id = u.role_id
+            WHERE u.username = ?
         ");
         $stmt->execute([$username]);
         return $stmt->fetch();
