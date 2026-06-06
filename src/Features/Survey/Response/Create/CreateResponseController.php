@@ -19,7 +19,7 @@ final class CreateResponseController
 
     public function create(int $surveyId): void
     {
-        $user = AuthMiddleware::handle('user');
+        $user = AuthMiddleware::handle();
         $userId = (int) $user['id'];
         $position = (string) $user['position'];
 
