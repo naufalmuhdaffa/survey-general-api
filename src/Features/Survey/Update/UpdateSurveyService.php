@@ -10,6 +10,7 @@ use function array_key_exists;
 final class UpdateSurveyService
 {
     private const array VALID_POSITIONS = ['public', 'asn', 'non_asn'];
+    private const array VALID_STATUSES = ['draft', 'upcoming', 'open', 'closed'];
 
     private UpdateSurveyRepository $repository;
 
@@ -27,7 +28,7 @@ final class UpdateSurveyService
             throw new RuntimeException('Survei tidak ditemukan', 404);
         }
 
-        $allowedFields = ['title', 'description', 'instructions', 'estimated_time', 'opens_at', 'closes_at'];
+        $allowedFields = ['title', 'description', 'instructions', 'estimated_time', 'status', 'opens_at', 'closes_at'];
         $fields = [];
 
         foreach ($allowedFields as $field) {
@@ -69,6 +70,10 @@ final class UpdateSurveyService
             $fields['estimated_time'] = $this->normalizeEstimatedTime($fields['estimated_time']);
         }
 
+        if (array_key_exists('status', $fields)) {
+            $fields['status'] = $this->normalizeStatus($fields['status']);
+        }
+
         if (array_key_exists('opens_at', $fields)) {
             $fields['opens_at'] = $this->normalizeDateTime($fields['opens_at'], 'Format opens_at tidak valid');
         }
@@ -93,6 +98,17 @@ final class UpdateSurveyService
         if (!empty($fields)) {
             $this->repository->updateSurvey($surveyId, $fields);
         }
+    }
+
+    private function normalizeStatus(mixed $status): string
+    {
+        $status = \is_string($status) ? trim($status) : '';
+
+        if (!\in_array($status, self::VALID_STATUSES, true)) {
+            throw new RuntimeException('Status survei tidak valid', 422);
+        }
+
+        return $status;
     }
 
     private function normalizeOptionalText(mixed $value, string $message): ?string

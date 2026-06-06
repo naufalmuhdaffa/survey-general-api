@@ -10,6 +10,7 @@ use RuntimeException;
 final class CreateSurveyService
 {
     private const array VALID_POSITIONS = ['public', 'asn', 'non_asn'];
+    private const array VALID_STATUSES = ['draft', 'upcoming', 'open', 'closed'];
 
     private CreateSurveyRepository $repository;
     private FileUploadService $fileUploadService;
@@ -38,6 +39,7 @@ final class CreateSurveyService
         $instructions = $this->normalizeOptionalText($data['instructions'] ?? null, 'Petunjuk pengisian (instructions) harus berupa teks');
         $instructions = $instructions === '' ? null : $instructions;
         $estimatedTime = $this->normalizeEstimatedTime($data['estimated_time'] ?? null);
+        $status = $this->normalizeStatus($data['status'] ?? 'draft');
         $opensAt = $this->normalizeDateTime($data['opens_at'] ?? null, 'Format opens_at tidak valid');
         $closesAt = $this->normalizeDateTime($data['closes_at'] ?? null, 'Format closes_at tidak valid');
 
@@ -58,6 +60,7 @@ final class CreateSurveyService
             $instructions,
             $estimatedTime,
             $thumbnailPath,
+            $status,
             $createdBy,
             $opensAt,
             $closesAt
@@ -66,6 +69,17 @@ final class CreateSurveyService
         $this->repository->createSurveyRestrictions($surveyId, $positions);
 
         return $surveyId;
+    }
+
+    private function normalizeStatus(mixed $status): string
+    {
+        $status = \is_string($status) ? trim($status) : '';
+
+        if (!\in_array($status, self::VALID_STATUSES, true)) {
+            throw new RuntimeException('Status survei tidak valid', 422);
+        }
+
+        return $status;
     }
 
     private function normalizeOptionalText(mixed $value, string $message): ?string
