@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\User\List;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
+use App\Services\PrivilegeService;
 
 final class ListUserController
 {
@@ -18,7 +18,7 @@ final class ListUserController
 
     public function list(): void
     {
-        AuthMiddleware::handle('superadmin');
+        PrivilegeService::require('user:read');
 
         Response::json([
             'status' => 'success',

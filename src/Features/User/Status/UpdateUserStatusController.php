@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\User\Status;
 
 use App\Helpers\Response;
-use App\Middleware\AuthMiddleware;
+use App\Services\PrivilegeService;
 use RuntimeException;
 
 final class UpdateUserStatusController
@@ -19,7 +19,7 @@ final class UpdateUserStatusController
 
     public function update(int $userId): void
     {
-        $currentUser = AuthMiddleware::handle('superadmin');
+        $currentUser = PrivilegeService::require('user:update');
 
         $data = json_decode(file_get_contents('php://input'), true);
 
