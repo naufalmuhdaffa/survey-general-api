@@ -25,8 +25,8 @@ final class CreateResponseService
             throw new RuntimeException('Survei tidak ditemukan', 404);
         }
 
-        if (!$this->repository->surveyIsActive($surveyId)) {
-            throw new RuntimeException('Survei tidak aktif', 422);
+        if (!$this->repository->surveyIsOpen($surveyId)) {
+            throw new RuntimeException('Survei belum dibuka atau sudah ditutup', 422);
         }
 
         if (!$this->repository->userCanAccessSurvey($surveyId, $position)) {
