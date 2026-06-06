@@ -19,10 +19,21 @@ final class ListPromotableUserRepository
     public function getPromotableUsers(): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, nik, full_name, username, role, position, is_active, created_at, updated_at
-            FROM users
-            WHERE role = 'user'
-            ORDER BY full_name ASC
+            SELECT
+                u.id,
+                u.nik,
+                u.full_name,
+                u.username,
+                u.role_id,
+                r.name AS role,
+                u.position,
+                u.is_active,
+                u.created_at,
+                u.updated_at
+            FROM users u
+            JOIN roles r ON r.id = u.role_id
+            WHERE r.name = 'user'
+            ORDER BY u.full_name ASC
         ");
         $stmt->execute();
         return $stmt->fetchAll();

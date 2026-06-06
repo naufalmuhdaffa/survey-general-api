@@ -19,24 +19,13 @@ final class UpdateUserStatusRepository
     public function getUserById(int $userId): array|false
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, role, is_active
-            FROM users
-            WHERE id = ?
+            SELECT u.id, u.role_id, r.name AS role, u.is_active
+            FROM users u
+            JOIN roles r ON r.id = u.role_id
+            WHERE u.id = ?
         ");
         $stmt->execute([$userId]);
         return $stmt->fetch();
-    }
-
-    public function countActiveSuperadmins(): int
-    {
-        $stmt = $this->pdo->prepare("
-            SELECT COUNT(*)
-            FROM users
-            WHERE role = 'superadmin'
-                AND is_active = TRUE
-        ");
-        $stmt->execute();
-        return (int) $stmt->fetchColumn();
     }
 
     public function updateStatus(int $userId, bool $isActive): void

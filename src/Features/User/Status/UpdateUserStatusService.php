@@ -31,16 +31,12 @@ final class UpdateUserStatusService
             throw new RuntimeException('User tidak ditemukan', 404);
         }
 
-        if (!\in_array($user['role'], ['superadmin', 'admin_opd'], true)) {
-            throw new RuntimeException('Status hanya bisa diubah untuk user manajemen', 422);
+        if ($user['role'] === 'user') {
+            throw new RuntimeException('Status aktif (is_active) hanya bisa diubah untuk role selain user', 422);
         }
 
         if ($currentUserId === $targetUserId && !$isActive) {
             throw new RuntimeException('Akun sendiri tidak bisa dinonaktifkan', 422);
-        }
-
-        if ($user['role'] === 'superadmin' && !$isActive && $this->repository->countActiveSuperadmins() <= 1) {
-            throw new RuntimeException('Minimal harus ada satu superadmin aktif. Superadmin terakhir tidak dapat dinonaktifkan', 422);
         }
 
         $this->repository->updateStatus($targetUserId, $isActive);

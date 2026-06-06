@@ -35,6 +35,7 @@ final class ListPromotableUserService
             'nik' => $user['nik'],
             'full_name' => $user['full_name'],
             'username' => $user['username'],
+            'role_id' => (int) $user['role_id'],
             'role' => $user['role'],
             'position' => $user['position'],
             'is_active' => (bool) $user['is_active'],

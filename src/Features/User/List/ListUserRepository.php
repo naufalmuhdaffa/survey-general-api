@@ -19,16 +19,21 @@ final class ListUserRepository
     public function getManagementUsers(): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, nik, full_name, username, role, position, is_active, created_at, updated_at
-            FROM users
-            WHERE role IN ('superadmin', 'admin_opd')
-            ORDER BY
-                CASE role
-                    WHEN 'superadmin' THEN 1
-                    WHEN 'admin_opd' THEN 2
-                    ELSE 3
-                END,
-                full_name ASC
+            SELECT
+                u.id,
+                u.nik,
+                u.full_name,
+                u.username,
+                u.role_id,
+                r.name AS role,
+                u.position,
+                u.is_active,
+                u.created_at,
+                u.updated_at
+            FROM users u
+            JOIN roles r ON r.id = u.role_id
+            WHERE r.name <> 'user'
+            ORDER BY r.name ASC, u.full_name ASC
         ");
         $stmt->execute();
         return $stmt->fetchAll();
