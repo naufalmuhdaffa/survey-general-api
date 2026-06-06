@@ -21,12 +21,7 @@ final class DetailSurveyRepository
         $stmt = $this->pdo->prepare("
             SELECT id, title, description, instructions, estimated_time,
             COALESCE(thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path, 
-            opens_at, closes_at,
-                CASE
-                    WHEN opens_at IS NOT NULL AND NOW() < opens_at THEN 'upcoming'
-                    WHEN closes_at IS NOT NULL AND NOW() > closes_at THEN 'closed'
-                    ELSE 'active'
-                END AS status
+            status, opens_at, closes_at
             FROM surveys
             WHERE id = ?
         ");

@@ -22,13 +22,14 @@ final class CreateSurveyRepository
         ?string $instructions,
         ?int $estimatedTime,
         ?string $thumbnailPath,
+        string $status,
         int $createdBy,
         ?string $opensAt,
         ?string $closesAt
     ): int {
         $stmt = $this->pdo->prepare("
-            INSERT INTO surveys (title, description, instructions, estimated_time, thumbnail_path, created_by, opens_at, closes_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO surveys (title, description, instructions, estimated_time, thumbnail_path, status, created_by, opens_at, closes_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -37,6 +38,7 @@ final class CreateSurveyRepository
             $instructions,
             $estimatedTime,
             $thumbnailPath,
+            $status,
             $createdBy,
             $opensAt,
             $closesAt

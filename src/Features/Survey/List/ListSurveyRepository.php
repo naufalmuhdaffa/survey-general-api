@@ -21,12 +21,7 @@ final class ListSurveyRepository
         $stmt = $this->pdo->prepare("
         SELECT s.id, s.title, s.description, 
         COALESCE(s.thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path, 
-        s.opens_at, s.closes_at,
-            CASE
-                WHEN s.opens_at IS NOT NULL AND NOW() < s.opens_at THEN 'upcoming'
-                WHEN s.closes_at IS NOT NULL AND NOW() > s.closes_at THEN 'closed'
-                ELSE 'active'
-            END AS status
+        s.status, s.opens_at, s.closes_at
         FROM surveys s
         WHERE (
             NOT EXISTS (
@@ -41,7 +36,7 @@ final class ListSurveyRepository
                 AND sr.position IN ('public', ?)
             )
         )
-        AND (s.closes_at IS NULL OR NOW() <= s.closes_at)
+        AND s.status IN ('open', 'upcoming')
         ORDER BY s.created_at DESC
         ");
 

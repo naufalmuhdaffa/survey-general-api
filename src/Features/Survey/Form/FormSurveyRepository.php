@@ -22,6 +22,7 @@ final class FormSurveyRepository
             SELECT COUNT(*)
             FROM surveys s
             WHERE s.id = ?
+            AND s.status = 'open'
             AND (
                 NOT EXISTS (
                     SELECT 1

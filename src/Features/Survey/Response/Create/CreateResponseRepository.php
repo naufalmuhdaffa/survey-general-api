@@ -24,14 +24,13 @@ final class CreateResponseRepository
         return (int) $stmt->fetchColumn() > 0;
     }
 
-    public function surveyIsActive(int $surveyId): bool
+    public function surveyIsOpen(int $surveyId): bool
     {
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*)
             FROM surveys
             WHERE id = ?
-            AND (opens_at IS NULL OR NOW() >= opens_at)
-            AND (closes_at IS NULL OR NOW() <= closes_at)
+            AND status = 'open'
         ");
         $stmt->execute([$surveyId]);
         return (int) $stmt->fetchColumn() > 0;
