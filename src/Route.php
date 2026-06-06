@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App;
 
 use App\Features\Auth\AuthRoute;
+use App\Features\Role\RoleRoute;
 use App\Features\Survey\SurveyRoute;
 use App\Features\User\UserRoute;
 use App\Interfaces\RouteInterface;
@@ -18,6 +19,10 @@ final class Route implements RouteInterface
         }
 
         if (SurveyRoute::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (RoleRoute::dispatch($path, $method, $segments)) {
             return true;
         }
 
