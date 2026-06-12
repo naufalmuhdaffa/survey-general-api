@@ -24,6 +24,8 @@ final class ListUserRepository
                 u.nik,
                 u.full_name,
                 u.username,
+                u.email,
+                u.phone,
                 u.role_id,
                 r.name AS role,
                 u.position,

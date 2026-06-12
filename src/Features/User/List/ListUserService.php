@@ -35,6 +35,8 @@ final class ListUserService
             'nik' => $user['nik'],
             'full_name' => $user['full_name'],
             'username' => $user['username'],
+            'email' => $user['email'],
+            'phone' => $user['phone'],
             'role_id' => (int) $user['role_id'],
             'role' => $user['role'],
             'position' => $user['position'],
