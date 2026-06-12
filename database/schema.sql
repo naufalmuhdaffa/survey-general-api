@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
     nik CHAR(16) NOT NULL UNIQUE,
     full_name VARCHAR(255) NOT NULL,
     username VARCHAR(25) NOT NULL UNIQUE,
+    email VARCHAR(255) NULL UNIQUE,
+    phone VARCHAR(20) NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role_id INT UNSIGNED NOT NULL DEFAULT 1,
     position ENUM(
