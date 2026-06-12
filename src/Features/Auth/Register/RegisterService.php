@@ -27,6 +27,12 @@ final class RegisterService
         $username = isset($data['username']) && \is_string($data['username'])
             ? strtolower(trim($data['username']))
             : '';
+        $email = isset($data['email']) && \is_string($data['email'])
+            ? strtolower(trim($data['email']))
+            : '';
+        $phone = isset($data['phone']) && \is_string($data['phone'])
+            ? trim($data['phone'])
+            : '';
         $password = isset($data['password']) && \is_string($data['password'])
             ? $data['password']
             : '';
@@ -67,12 +73,36 @@ final class RegisterService
             throw new RuntimeException('Password maksimal 255 karakter', 422);
         }
 
+        if ($email !== '' && mb_strlen($email) > 255) {
+            throw new RuntimeException('Email maksimal 255 karakter', 422);
+        }
+
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('Format email tidak valid', 422);
+        }
+
+        if ($phone !== '' && mb_strlen($phone) > 20) {
+            throw new RuntimeException('Nomor telepon maksimal 20 karakter', 422);
+        }
+
+        if ($phone !== '' && !preg_match('/^\+?[0-9]{8,15}$/', $phone)) {
+            throw new RuntimeException('Format nomor telepon tidak valid', 422);
+        }
+
         if ($this->repository->getUserByNik($nik)) {
             throw new RuntimeException('NIK sudah terdaftar', 409);
         }
 
         if ($this->repository->getUserByUsername($username)) {
             throw new RuntimeException('Username sudah terdaftar', 409);
+        }
+
+        if ($email !== '' && $this->repository->getUserByEmail($email)) {
+            throw new RuntimeException('Email sudah terdaftar', 409);
+        }
+
+        if ($phone !== '' && $this->repository->getUserByPhone($phone)) {
+            throw new RuntimeException('Nomor telepon sudah terdaftar', 409);
         }
 
         $identityData = $this->verifyNik($nik);
@@ -84,6 +114,8 @@ final class RegisterService
                 $nik,
                 $verifiedFullName,
                 $username,
+                $email !== '' ? $email : null,
+                $phone !== '' ? $phone : null,
                 $password,
                 $position
             );

@@ -32,23 +32,43 @@ final class RegisterRepository
         return $stmt->fetch();
     }
 
+    public function getUserByEmail(
+        string $email
+    ): array|false {
+        $stmt = $this->pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        return $stmt->fetch();
+    }
+
+    public function getUserByPhone(
+        string $phone
+    ): array|false {
+        $stmt = $this->pdo->prepare("SELECT id FROM users WHERE phone = ?");
+        $stmt->execute([$phone]);
+        return $stmt->fetch();
+    }
+
     public function registerUser(
         string $nik,
         string $fullName,
         string $username,
+        ?string $email,
+        ?string $phone,
         string $password,
         string $position
     ): int {
         try {
             $stmt = $this->pdo->prepare("
-            INSERT INTO users (nik, full_name, username, password, position)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO users (nik, full_name, username, email, phone, password, position)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
 
             $stmt->execute([
                 $nik,
                 $fullName,
                 $username,
+                $email,
+                $phone,
                 password_hash($password, PASSWORD_DEFAULT),
                 $position
             ]);
