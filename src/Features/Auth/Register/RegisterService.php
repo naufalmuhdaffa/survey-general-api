@@ -30,9 +30,7 @@ final class RegisterService
         $email = isset($data['email']) && \is_string($data['email'])
             ? strtolower(trim($data['email']))
             : '';
-        $phone = isset($data['phone']) && \is_string($data['phone'])
-            ? trim($data['phone'])
-            : '';
+        $phone = $this->normalizePhone($data['phone'] ?? null);
         $password = isset($data['password']) && \is_string($data['password'])
             ? $data['password']
             : '';
@@ -79,14 +77,6 @@ final class RegisterService
 
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('Format email tidak valid', 422);
-        }
-
-        if ($phone !== '' && mb_strlen($phone) > 20) {
-            throw new RuntimeException('Nomor telepon maksimal 20 karakter', 422);
-        }
-
-        if ($phone !== '' && !preg_match('/^\+?[0-9]{8,15}$/', $phone)) {
-            throw new RuntimeException('Format nomor telepon tidak valid', 422);
         }
 
         if ($this->repository->getUserByNik($nik)) {
@@ -187,5 +177,44 @@ final class RegisterService
             'address' => $identity['address'] ?? null,
             'position' => $position,
         ];
+    }
+
+    private function normalizePhone(mixed $phone): string
+    {
+        if ($phone === null) {
+            return '';
+        }
+
+        if (!\is_string($phone)) {
+            throw new RuntimeException('Nomor telepon harus berupa string', 422);
+        }
+
+        $phone = trim($phone);
+
+        if ($phone === '') {
+            return '';
+        }
+
+        $phone = preg_replace('/[\s().-]/', '', $phone);
+
+        if (!\is_string($phone) || !preg_match('/^\+?[0-9]+$/', $phone)) {
+            throw new RuntimeException('Format nomor telepon tidak valid', 422);
+        }
+
+        if (str_starts_with($phone, '+62')) {
+            $normalizedPhone = $phone;
+        } elseif (str_starts_with($phone, '62')) {
+            $normalizedPhone = '+' . $phone;
+        } elseif (str_starts_with($phone, '0')) {
+            $normalizedPhone = '+62' . substr($phone, 1);
+        } else {
+            throw new RuntimeException('Format nomor telepon harus diawali dengan +62, 62, atau 08', 422);
+        }
+
+        if (!preg_match('/^\+62[0-9]{8,13}$/', $normalizedPhone)) {
+            throw new RuntimeException('Format nomor telepon tidak valid', 422);
+        }
+
+        return $normalizedPhone;
     }
 }
