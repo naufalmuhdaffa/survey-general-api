@@ -62,7 +62,6 @@ final class SmsService
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
         if ($response === false || $httpCode < 200 || $httpCode >= 300) {
             throw new RuntimeException('Gagal mengirim OTP nomor telepon', 502);
