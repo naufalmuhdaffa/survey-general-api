@@ -11,10 +11,12 @@ use RuntimeException;
 final class RegisterController
 {
     private RegisterService $service;
+    private RegisterVerificationService $verificationService;
 
     public function __construct()
     {
         $this->service = new RegisterService();
+        $this->verificationService = new RegisterVerificationService();
     }
 
     public function register(): void
@@ -33,7 +35,7 @@ final class RegisterController
         } catch (RuntimeException $e) {
             $statusCode = $e->getCode();
 
-            if ($statusCode < 400 || $statusCode > 599) {
+            if (!\is_int($statusCode) || $statusCode < 400 || $statusCode > 599) {
                 throw $e;
             }
 
@@ -58,7 +60,7 @@ final class RegisterController
         } catch (RuntimeException $e) {
             $statusCode = $e->getCode();
 
-            if ($statusCode < 400 || $statusCode > 599) {
+            if (!\is_int($statusCode) || $statusCode < 400 || $statusCode > 599) {
                 throw $e;
             }
 
@@ -76,5 +78,97 @@ final class RegisterController
                 'position' => $identity['position'],
             ]
         ], 200);
+    }
+
+    public function sendEmailCode(): void
+    {
+        $data = $this->jsonBody();
+
+        try {
+            $this->verificationService->sendEmailCode($data);
+        } catch (RuntimeException $e) {
+            $this->handleRuntimeException($e);
+        }
+
+        Response::json([
+            'status' => 'success',
+            'message' => 'Kode verifikasi email berhasil dikirim'
+        ], 200);
+    }
+
+    public function verifyEmailCode(): void
+    {
+        $data = $this->jsonBody();
+
+        try {
+            $this->verificationService->verifyEmailCode($data);
+        } catch (RuntimeException $e) {
+            $this->handleRuntimeException($e);
+        }
+
+        Response::json([
+            'status' => 'success',
+            'message' => 'Email berhasil diverifikasi'
+        ], 200);
+    }
+
+    public function sendPhoneOtp(): void
+    {
+        $data = $this->jsonBody();
+
+        try {
+            $this->verificationService->sendPhoneOtp($data);
+        } catch (RuntimeException $e) {
+            $this->handleRuntimeException($e);
+        }
+
+        Response::json([
+            'status' => 'success',
+            'message' => 'OTP nomor telepon berhasil dikirim'
+        ], 200);
+    }
+
+    public function verifyPhoneOtp(): void
+    {
+        $data = $this->jsonBody();
+
+        try {
+            $this->verificationService->verifyPhoneOtp($data);
+        } catch (RuntimeException $e) {
+            $this->handleRuntimeException($e);
+        }
+
+        Response::json([
+            'status' => 'success',
+            'message' => 'Nomor telepon berhasil diverifikasi'
+        ], 200);
+    }
+
+    private function jsonBody(): array
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Format JSON tidak valid'
+            ], 400);
+        }
+
+        return \is_array($data) ? $data : [];
+    }
+
+    private function handleRuntimeException(RuntimeException $e): void
+    {
+        $statusCode = $e->getCode();
+
+        if (!\is_int($statusCode) || $statusCode < 400 || $statusCode > 599) {
+            throw $e;
+        }
+
+        Response::json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], $statusCode);
     }
 }
