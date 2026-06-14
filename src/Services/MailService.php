@@ -10,6 +10,32 @@ final class MailService
 {
     public function send(string $to, string $subject, string $body): void
     {
+        $this->sendMessage($to, $subject, $body, 'text/plain; charset=UTF-8');
+    }
+
+    public function sendHtml(
+        string $to,
+        string $subject,
+        string $htmlBody,
+        string $textBody
+    ): void {
+        $this->sendMessage(
+            $to,
+            $subject,
+            $htmlBody,
+            'text/html; charset=UTF-8',
+            $textBody
+        );
+    }
+
+    private function sendMessage(
+        string $to,
+        string $subject,
+        string $body,
+        string $contentType,
+        ?string $fallbackBody = null
+    ): void
+    {
         $transport = strtolower(trim($_ENV['MAIL_TRANSPORT'] ?? ''));
 
         if ($transport === '') {
@@ -17,21 +43,26 @@ final class MailService
         }
 
         match ($transport) {
-            'log' => $this->writeLog($to, $subject, $body),
-            'smtp' => $this->sendSmtp($to, $subject, $body),
-            'mail' => $this->sendWithMail($to, $subject, $body),
+            'log' => $this->writeLog($to, $subject, $body, $fallbackBody),
+            'smtp' => $this->sendSmtp($to, $subject, $body, $contentType),
+            'mail' => $this->sendWithMail($to, $subject, $body, $contentType),
             default => throw new RuntimeException('MAIL_TRANSPORT tidak valid', 500),
         };
     }
 
-    private function sendWithMail(string $to, string $subject, string $body): void
+    private function sendWithMail(
+        string $to,
+        string $subject,
+        string $body,
+        string $contentType
+    ): void
     {
         $fromEmail = $this->fromEmail();
         $fromName = $this->fromName();
 
         $headers = [
             'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Type: ' . $contentType,
             'From: ' . $fromName . ' <' . $fromEmail . '>',
         ];
 
@@ -40,7 +71,12 @@ final class MailService
         }
     }
 
-    private function sendSmtp(string $to, string $subject, string $body): void
+    private function sendSmtp(
+        string $to,
+        string $subject,
+        string $body,
+        string $contentType
+    ): void
     {
         $host = trim($_ENV['MAIL_SMTP_HOST'] ?? '');
 
@@ -87,7 +123,7 @@ final class MailService
                 'To: <' . $to . '>',
                 'Subject: ' . $subject,
                 'MIME-Version: 1.0',
-                'Content-Type: text/plain; charset=UTF-8',
+                'Content-Type: ' . $contentType,
             ]);
             $payload = $headers . "\r\n\r\n" . $this->dotStuff($body) . "\r\n.";
 
@@ -141,7 +177,12 @@ final class MailService
         return preg_replace('/^\./m', '..', str_replace(["\r\n", "\r"], "\n", $body)) ?? $body;
     }
 
-    private function writeLog(string $to, string $subject, string $body): void
+    private function writeLog(
+        string $to,
+        string $subject,
+        string $body,
+        ?string $fallbackBody
+    ): void
     {
         $logDirectory = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'logs';
 
@@ -157,7 +198,7 @@ final class MailService
                 $to,
                 $subject,
                 PHP_EOL,
-                $body,
+                $fallbackBody ?? $body,
                 PHP_EOL . PHP_EOL
             ),
             FILE_APPEND

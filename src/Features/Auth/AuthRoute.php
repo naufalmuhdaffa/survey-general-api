@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Auth;
 
+use App\Features\Auth\PasswordReset\PasswordResetRoute;
 use App\Features\Auth\Register\RegisterRoute;
 use App\Features\Auth\Login\LoginRoute;
 use App\Features\Auth\Logout\LogoutRoute;
@@ -14,6 +15,10 @@ final class AuthRoute implements RouteInterface
     public static function dispatch(string $path, string $method, array $segments): bool
     {
         if (RegisterRoute::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (PasswordResetRoute::dispatch($path, $method, $segments)) {
             return true;
         }
 
