@@ -30,6 +30,30 @@ final class RegisterRoute implements RouteInterface
             return true;
         }
 
+        if ($path === '/auth/register/email/code' && $method === 'POST') {
+            $controller = new RegisterController();
+            $controller->sendEmailCode();
+            return true;
+        }
+
+        if ($path === '/auth/register/email/verify' && $method === 'POST') {
+            $controller = new RegisterController();
+            $controller->verifyEmailCode();
+            return true;
+        }
+
+        if ($path === '/auth/register/phone/otp' && $method === 'POST') {
+            $controller = new RegisterController();
+            $controller->sendPhoneOtp();
+            return true;
+        }
+
+        if ($path === '/auth/register/phone/verify' && $method === 'POST') {
+            $controller = new RegisterController();
+            $controller->verifyPhoneOtp();
+            return true;
+        }
+
         return false;
     }
 }
