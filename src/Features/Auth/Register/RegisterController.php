@@ -49,7 +49,11 @@ final class RegisterController
 
         Response::json([
             'status' => 'success',
-            'message' => 'Registrasi berhasil'
+            'message' => 'Registrasi berhasil',
+            'data' => [
+                'token' => $token,
+            ],
+            'token' => $token,
         ], 201);
     }
 

@@ -47,7 +47,11 @@ final class LoginController
 
         Response::json([
             'status' => 'success',
-            'message' => 'Login berhasil'
+            'message' => 'Login berhasil',
+            'data' => [
+                'token' => $token,
+            ],
+            'token' => $token,
         ], 200);
     }
 }
