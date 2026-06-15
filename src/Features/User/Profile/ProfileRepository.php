@@ -26,6 +26,8 @@ final class ProfileRepository
                 u.username,
                 u.email,
                 u.phone,
+                u.email_verified_at,
+                u.phone_verified_at,
                 u.password,
                 u.role_id,
                 r.name AS role,
@@ -72,8 +74,12 @@ final class ProfileRepository
     /**
      * @param array{email?: ?string, phone?: ?string} $fields
      */
-    public function updateProfile(int $userId, array $fields): void
-    {
+    public function updateProfile(
+        int $userId,
+        array $fields,
+        bool $resetEmailVerification,
+        bool $resetPhoneVerification
+    ): void {
         $set = [];
         $values = [];
 
@@ -84,6 +90,14 @@ final class ProfileRepository
 
             $set[] = "{$field} = ?";
             $values[] = $fields[$field];
+        }
+
+        if ($resetEmailVerification) {
+            $set[] = 'email_verified_at = NULL';
+        }
+
+        if ($resetPhoneVerification) {
+            $set[] = 'phone_verified_at = NULL';
         }
 
         if ($set === []) {
@@ -98,6 +112,26 @@ final class ProfileRepository
             WHERE id = ?
         ");
         $stmt->execute($values);
+    }
+
+    public function markEmailVerified(int $userId): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE users
+            SET email_verified_at = NOW()
+            WHERE id = ?
+        ");
+        $stmt->execute([$userId]);
+    }
+
+    public function markPhoneVerified(int $userId): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE users
+            SET phone_verified_at = NOW()
+            WHERE id = ?
+        ");
+        $stmt->execute([$userId]);
     }
 
     public function updatePassword(int $userId, string $password): void

@@ -68,6 +68,74 @@ final class ProfileController
         ], 200);
     }
 
+    public function sendEmailCode(): void
+    {
+        $authUser = AuthMiddleware::handle();
+
+        try {
+            $this->service->sendEmailCode((int) $authUser['id']);
+        } catch (RuntimeException $e) {
+            $this->handleRuntimeException($e);
+        }
+
+        Response::json([
+            'status' => 'success',
+            'message' => 'Kode verifikasi email berhasil dikirim',
+        ], 200);
+    }
+
+    public function verifyEmailCode(): void
+    {
+        $authUser = AuthMiddleware::handle();
+        $data = $this->jsonBody();
+
+        try {
+            $profile = $this->service->verifyEmailCode((int) $authUser['id'], $data);
+        } catch (RuntimeException $e) {
+            $this->handleRuntimeException($e);
+        }
+
+        Response::json([
+            'status' => 'success',
+            'message' => 'Email berhasil diverifikasi',
+            'data' => $profile,
+        ], 200);
+    }
+
+    public function sendPhoneOtp(): void
+    {
+        $authUser = AuthMiddleware::handle();
+
+        try {
+            $this->service->sendPhoneOtp((int) $authUser['id']);
+        } catch (RuntimeException $e) {
+            $this->handleRuntimeException($e);
+        }
+
+        Response::json([
+            'status' => 'success',
+            'message' => 'OTP nomor telepon berhasil dikirim',
+        ], 200);
+    }
+
+    public function verifyPhoneOtp(): void
+    {
+        $authUser = AuthMiddleware::handle();
+        $data = $this->jsonBody();
+
+        try {
+            $profile = $this->service->verifyPhoneOtp((int) $authUser['id'], $data);
+        } catch (RuntimeException $e) {
+            $this->handleRuntimeException($e);
+        }
+
+        Response::json([
+            'status' => 'success',
+            'message' => 'Nomor telepon berhasil diverifikasi',
+            'data' => $profile,
+        ], 200);
+    }
+
     private function jsonBody(): array
     {
         $data = json_decode(file_get_contents('php://input'), true);

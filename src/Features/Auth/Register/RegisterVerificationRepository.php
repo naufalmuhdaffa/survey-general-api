@@ -29,6 +29,20 @@ final class RegisterVerificationRepository
         return $stmt->fetch();
     }
 
+    public function isVerified(string $channel, string $target): bool
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT id
+            FROM contact_verifications
+            WHERE channel = ? AND target = ? AND verified_at IS NOT NULL
+            ORDER BY id DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$channel, $target]);
+
+        return (bool) $stmt->fetch();
+    }
+
     public function storeCode(
         string $channel,
         string $target,

@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Features\User\Profile;
 
+use App\Features\Auth\Register\RegisterVerificationService;
 use RuntimeException;
 
 final class ProfileService
 {
     private ProfileRepository $repository;
+    private RegisterVerificationService $verificationService;
 
     public function __construct()
     {
         $this->repository = new ProfileRepository();
+        $this->verificationService = new RegisterVerificationService();
     }
 
     /**
@@ -36,15 +39,24 @@ final class ProfileService
     public function updateProfile(int $userId, array $data): array
     {
         $this->guardReadonlyFields($data);
+        $currentUser = $this->repository->getById($userId);
+
+        if (!$currentUser) {
+            throw new RuntimeException('User tidak ditemukan', 404);
+        }
 
         $fields = [];
+        $resetEmailVerification = false;
+        $resetPhoneVerification = false;
 
         if (array_key_exists('email', $data)) {
             $fields['email'] = $this->normalizeEmail($data['email']);
+            $resetEmailVerification = $fields['email'] !== ($currentUser['email'] ?? null);
         }
 
         if (array_key_exists('phone', $data)) {
             $fields['phone'] = $this->normalizePhone($data['phone']);
+            $resetPhoneVerification = $fields['phone'] !== ($currentUser['phone'] ?? null);
         }
 
         if ($fields === []) {
@@ -67,7 +79,60 @@ final class ProfileService
             throw new RuntimeException('Nomor telepon sudah digunakan user lain', 409);
         }
 
-        $this->repository->updateProfile($userId, $fields);
+        $this->repository->updateProfile(
+            $userId,
+            $fields,
+            $resetEmailVerification,
+            $resetPhoneVerification
+        );
+
+        return $this->profile($userId);
+    }
+
+    public function sendEmailCode(int $userId): void
+    {
+        $user = $this->requireUserWithContact($userId, 'email');
+        $this->verificationService->sendEmailCode([
+            'email' => $user['email'],
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function verifyEmailCode(int $userId, array $data): array
+    {
+        $user = $this->requireUserWithContact($userId, 'email');
+        $this->verificationService->verifyEmailCode([
+            'code' => $data['code'] ?? null,
+            'email' => $user['email'],
+        ]);
+        $this->repository->markEmailVerified($userId);
+
+        return $this->profile($userId);
+    }
+
+    public function sendPhoneOtp(int $userId): void
+    {
+        $user = $this->requireUserWithContact($userId, 'phone');
+        $this->verificationService->sendPhoneOtp([
+            'phone' => $user['phone'],
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function verifyPhoneOtp(int $userId, array $data): array
+    {
+        $user = $this->requireUserWithContact($userId, 'phone');
+        $this->verificationService->verifyPhoneOtp([
+            'code' => $data['code'] ?? null,
+            'phone' => $user['phone'],
+        ]);
+        $this->repository->markPhoneVerified($userId);
 
         return $this->profile($userId);
     }
@@ -233,6 +298,10 @@ final class ProfileService
             'username' => $user['username'],
             'email' => $user['email'],
             'phone' => $user['phone'],
+            'email_verified_at' => $user['email_verified_at'],
+            'phone_verified_at' => $user['phone_verified_at'],
+            'email_verified' => !empty($user['email_verified_at']),
+            'phone_verified' => !empty($user['phone_verified_at']),
             'role_id' => (int) $user['role_id'],
             'role' => $user['role'],
             'position' => $user['position'],
@@ -274,5 +343,26 @@ final class ProfileService
         return \is_string($address) && trim($address) !== ''
             ? trim($address)
             : null;
+    }
+
+    private function requireUserWithContact(int $userId, string $contactField): array
+    {
+        $user = $this->repository->getById($userId);
+
+        if (!$user) {
+            throw new RuntimeException('User tidak ditemukan', 404);
+        }
+
+        $contact = $user[$contactField] ?? null;
+
+        if (!\is_string($contact) || trim($contact) === '') {
+            $message = $contactField === 'email'
+                ? 'Email harus diisi sebelum verifikasi'
+                : 'Nomor telepon harus diisi sebelum verifikasi';
+
+            throw new RuntimeException($message, 422);
+        }
+
+        return $user;
     }
 }

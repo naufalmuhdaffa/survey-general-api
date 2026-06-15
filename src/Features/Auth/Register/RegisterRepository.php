@@ -54,13 +54,25 @@ final class RegisterRepository
         string $username,
         ?string $email,
         ?string $phone,
+        ?string $emailVerifiedAt,
+        ?string $phoneVerifiedAt,
         string $password,
         string $position
     ): int {
         try {
             $stmt = $this->pdo->prepare("
-            INSERT INTO users (nik, full_name, username, email, phone, password, position)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO users (
+                nik,
+                full_name,
+                username,
+                email,
+                phone,
+                email_verified_at,
+                phone_verified_at,
+                password,
+                position
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $stmt->execute([
@@ -69,6 +81,8 @@ final class RegisterRepository
                 $username,
                 $email,
                 $phone,
+                $emailVerifiedAt,
+                $phoneVerifiedAt,
                 password_hash($password, PASSWORD_DEFAULT),
                 $position
             ]);

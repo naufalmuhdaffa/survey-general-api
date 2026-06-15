@@ -30,6 +30,15 @@ final class AuthMiddleware
             ], 401);
         }
 
+        $repository = new AuthRepository();
+
+        if ($repository->isTokenRevoked($token)) {
+            Response::json([
+                'status' => 'error',
+                'message' => 'Token sudah tidak berlaku'
+            ], 401);
+        }
+
         $userId = (int) ($payload->data->userId ?? 0);
 
         if ($userId <= 0) {
@@ -39,7 +48,6 @@ final class AuthMiddleware
             ], 401);
         }
 
-        $repository = new AuthRepository();
         $user = $repository->findById($userId);
 
         if (!$user) {

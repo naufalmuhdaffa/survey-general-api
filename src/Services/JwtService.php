@@ -53,6 +53,6 @@ final class JwtService
 
     public static function token(): ?string
     {
-        return CookieService::token() ?? self::bearerToken();
+        return self::bearerToken() ?? CookieService::token();
     }
 }

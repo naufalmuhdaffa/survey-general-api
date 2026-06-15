@@ -21,7 +21,7 @@ final class PasswordResetRepository
         $stmt = $this->pdo->prepare("
             SELECT id, email
             FROM users
-            WHERE email = ?
+            WHERE email = ? AND email_verified_at IS NOT NULL
             LIMIT 1
         ");
         $stmt->execute([$email]);

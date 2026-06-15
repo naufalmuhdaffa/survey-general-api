@@ -10,10 +10,12 @@ use RuntimeException;
 final class RegisterService
 {
     private RegisterRepository $repository;
+    private RegisterVerificationRepository $verificationRepository;
 
     public function __construct()
     {
         $this->repository = new RegisterRepository();
+        $this->verificationRepository = new RegisterVerificationRepository();
     }
 
     public function register(array $data): string
@@ -106,6 +108,8 @@ final class RegisterService
                 $username,
                 $email !== '' ? $email : null,
                 $phone !== '' ? $phone : null,
+                $this->verifiedAt('email', $email),
+                $this->verifiedAt('phone', $phone),
                 $password,
                 $position
             );
@@ -216,5 +220,18 @@ final class RegisterService
         }
 
         return $normalizedPhone;
+    }
+
+    private function verifiedAt(string $channel, string $target): ?string
+    {
+        if ($target === '') {
+            return null;
+        }
+
+        if (!$this->verificationRepository->isVerified($channel, $target)) {
+            return null;
+        }
+
+        return date('Y-m-d H:i:s');
     }
 }
