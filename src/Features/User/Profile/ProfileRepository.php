@@ -71,8 +71,21 @@ final class ProfileRepository
         return (bool) $stmt->fetch();
     }
 
+    public function usernameExistsForOtherUser(string $username, int $userId): bool
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT id
+            FROM users
+            WHERE username = ? AND id <> ?
+            LIMIT 1
+        ");
+        $stmt->execute([$username, $userId]);
+
+        return (bool) $stmt->fetch();
+    }
+
     /**
-     * @param array{email?: ?string, phone?: ?string} $fields
+     * @param array{email?: ?string, phone?: ?string, username?: string} $fields
      */
     public function updateProfile(
         int $userId,
@@ -83,7 +96,7 @@ final class ProfileRepository
         $set = [];
         $values = [];
 
-        foreach (['email', 'phone'] as $field) {
+        foreach (['email', 'phone', 'username'] as $field) {
             if (!array_key_exists($field, $fields)) {
                 continue;
             }

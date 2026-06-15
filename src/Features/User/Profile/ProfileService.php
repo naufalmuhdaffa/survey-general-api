@@ -59,6 +59,10 @@ final class ProfileService
             $resetPhoneVerification = $fields['phone'] !== ($currentUser['phone'] ?? null);
         }
 
+        if (array_key_exists('username', $data)) {
+            $fields['username'] = $this->normalizeUsername($data['username']);
+        }
+
         if ($fields === []) {
             throw new RuntimeException('Tidak ada data profil yang bisa diperbarui', 422);
         }
@@ -77,6 +81,13 @@ final class ProfileService
             && $this->repository->phoneExistsForOtherUser($fields['phone'], $userId)
         ) {
             throw new RuntimeException('Nomor telepon sudah digunakan user lain', 409);
+        }
+
+        if (
+            array_key_exists('username', $fields)
+            && $this->repository->usernameExistsForOtherUser($fields['username'], $userId)
+        ) {
+            throw new RuntimeException('Username sudah digunakan user lain', 409);
         }
 
         $this->repository->updateProfile(
@@ -206,17 +217,39 @@ final class ProfileService
             'role_id',
             'is_active',
             'password',
-            'username',
         ];
 
         foreach ($readonlyFields as $field) {
             if (array_key_exists($field, $data)) {
                 throw new RuntimeException(
-                    'NIK, nama lengkap, alamat, posisi, role, username, dan password tidak bisa diubah dari profil',
+                    'NIK, nama lengkap, alamat, posisi, role, dan password tidak bisa diubah dari profil',
                     422
                 );
             }
         }
+    }
+
+    private function normalizeUsername(mixed $username): string
+    {
+        if (!\is_string($username)) {
+            throw new RuntimeException('Username harus berupa string', 422);
+        }
+
+        $username = strtolower(trim($username));
+
+        if ($username === '') {
+            throw new RuntimeException('Username harus diisi', 422);
+        }
+
+        if (mb_strlen($username) > 25) {
+            throw new RuntimeException('Username maksimal 25 karakter', 422);
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+            throw new RuntimeException('Username hanya boleh huruf, angka, dan underscore', 422);
+        }
+
+        return $username;
     }
 
     private function normalizeEmail(mixed $email): ?string
