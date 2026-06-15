@@ -49,6 +49,10 @@ final class CreateSurveyRepository
 
     public function createSurveyRestrictions(int $surveyId, array $positions): void
     {
+        if ($positions === []) {
+            return;
+        }
+
         $placeholders = implode(', ', array_fill(0, \count($positions), '(?, ?)'));
         $values = [];
 

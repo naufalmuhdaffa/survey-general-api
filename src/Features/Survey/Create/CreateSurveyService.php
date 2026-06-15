@@ -150,8 +150,12 @@ final class CreateSurveyService
      */
     private function normalizePositions(mixed $positions): array
     {
-        if (!\is_array($positions) || empty($positions)) {
-            throw new RuntimeException('Posisi (position) tidak boleh kosong', 422);
+        if (!\is_array($positions)) {
+            throw new RuntimeException('Posisi (position) harus berupa array', 422);
+        }
+
+        if (empty($positions)) {
+            return [];
         }
 
         foreach ($positions as $position) {
