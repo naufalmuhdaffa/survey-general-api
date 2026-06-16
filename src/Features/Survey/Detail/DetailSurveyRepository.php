@@ -40,6 +40,104 @@ final class DetailSurveyRepository
         return array_column($stmt->fetchAll(), 'position');
     }
 
+    public function getPagesWithQuestionsBySurveyId(int $surveyId): array
+    {
+        $pages = $this->getPagesBySurveyId($surveyId);
+        $questions = $this->getQuestionsBySurveyId($surveyId);
+        $optionsByQuestionId = $this->getOptionsByQuestionIds(
+            array_column($questions, 'id')
+        );
+
+        foreach ($questions as $question) {
+            $page = (int) $question['page'];
+            $questionId = (int) $question['id'];
+            $question['is_required'] = (bool) $question['is_required'];
+            $question['options'] = $optionsByQuestionId[$questionId] ?? [];
+
+            if (!isset($pages[$page])) {
+                $pages[$page] = [
+                    'page' => $page,
+                    'section' => null,
+                    'questions' => [],
+                ];
+            }
+
+            $pages[$page]['questions'][] = $question;
+        }
+
+        ksort($pages);
+
+        return array_values($pages);
+    }
+
+    private function getPagesBySurveyId(int $surveyId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT page, section
+            FROM survey_pages
+            WHERE survey_id = ?
+            ORDER BY page ASC
+        ");
+        $stmt->execute([$surveyId]);
+
+        $pages = [];
+
+        foreach ($stmt->fetchAll() as $page) {
+            $pageNumber = (int) $page['page'];
+
+            $pages[$pageNumber] = [
+                'page' => $pageNumber,
+                'section' => $page['section'],
+                'questions' => [],
+            ];
+        }
+
+        return $pages;
+    }
+
+    private function getQuestionsBySurveyId(int $surveyId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT id, question_text, question_type, is_required, question_order, page, parent_option_id
+            FROM questions
+            WHERE survey_id = ?
+            ORDER BY page ASC, question_order ASC
+        ");
+        $stmt->execute([$surveyId]);
+
+        return $stmt->fetchAll();
+    }
+
+    private function getOptionsByQuestionIds(array $questionIds): array
+    {
+        $questionIds = array_values(array_unique(array_map('intval', $questionIds)));
+
+        if (empty($questionIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, \count($questionIds), '?'));
+
+        $stmt = $this->pdo->prepare("
+            SELECT question_id, id, option_text, option_order
+            FROM options
+            WHERE question_id IN ({$placeholders})
+            ORDER BY question_id ASC, option_order ASC
+        ");
+        $stmt->execute($questionIds);
+
+        $optionsByQuestionId = [];
+
+        foreach ($stmt->fetchAll() as $option) {
+            $questionId = (int) $option['question_id'];
+            unset($option['question_id']);
+
+            $optionsByQuestionId[$questionId][] = $option;
+        }
+
+        return $optionsByQuestionId;
+    }
+
     public function canAccessSurvey(int $surveyId, ?string $position): bool
     {
         $stmt = $this->pdo->prepare("

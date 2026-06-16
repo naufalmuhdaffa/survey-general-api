@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Survey\Detail;
 
-use App\Services\JwtService;
 use RuntimeException;
 
 final class DetailSurveyService
@@ -18,23 +17,6 @@ final class DetailSurveyService
 
     public function getDetail(int $surveyId): array
     {
-        $position = null;
-        $token = JwtService::token();
-
-        if ($token !== null) {
-            $payload = JwtService::verify($token);
-
-            if ($payload === null) {
-                throw new RuntimeException('Token tidak valid atau sudah kedaluwarsa', 401);
-            }
-
-            $position = $payload->data->position ?? null;
-        }
-
-        if (!$this->repository->canAccessSurvey($surveyId, $position)) {
-            throw new RuntimeException('Survei tidak ditemukan', 404);
-        }
-
         $survey = $this->repository->getSurveyById($surveyId);
 
         if (!$survey) {
@@ -42,6 +24,7 @@ final class DetailSurveyService
         }
 
         $survey['restrictions'] = $this->repository->getRestrictionsBySurveyId($surveyId);
+        $survey['pages'] = $this->repository->getPagesWithQuestionsBySurveyId($surveyId);
 
         return $survey;
     }
