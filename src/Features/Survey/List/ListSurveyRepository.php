@@ -19,9 +19,18 @@ final class ListSurveyRepository
     public function getAllSurveys(?string $position): array
     {
         $stmt = $this->pdo->prepare("
-        SELECT s.id, s.title, s.description, 
+        SELECT s.id, s.title, s.description, s.estimated_time,
         COALESCE(s.thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path, 
-        s.status, s.opens_at, s.closes_at
+        s.status, s.opens_at, s.closes_at,
+        COALESCE((
+            SELECT GROUP_CONCAT(
+                sr.position
+                ORDER BY FIELD(sr.position, 'asn', 'non_asn', 'public')
+                SEPARATOR ','
+            )
+            FROM survey_restrictions sr
+            WHERE sr.survey_id = s.id
+        ), '') AS positions
         FROM surveys s
         WHERE (
             NOT EXISTS (
@@ -36,7 +45,7 @@ final class ListSurveyRepository
                 AND sr.position IN ('public', ?)
             )
         )
-        AND s.status IN ('open', 'upcoming')
+        AND s.status <> 'closed'
         ORDER BY s.created_at DESC
         ");
 
