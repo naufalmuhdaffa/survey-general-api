@@ -5,17 +5,21 @@ declare(strict_types=1);
 namespace App\Features\User\Profile;
 
 use App\Features\Auth\Register\RegisterVerificationService;
+use App\Services\FileUploadService;
+use InvalidArgumentException;
 use RuntimeException;
 
 final class ProfileService
 {
     private ProfileRepository $repository;
     private RegisterVerificationService $verificationService;
+    private FileUploadService $fileUploadService;
 
     public function __construct()
     {
         $this->repository = new ProfileRepository();
         $this->verificationService = new RegisterVerificationService();
+        $this->fileUploadService = new FileUploadService();
     }
 
     /**
@@ -144,6 +148,45 @@ final class ProfileService
             'phone' => $user['phone'],
         ]);
         $this->repository->markPhoneVerified($userId);
+
+        return $this->profile($userId);
+    }
+
+    /**
+     * @param array<string, mixed>|null $photo
+     * @return array<string, mixed>
+     */
+    public function updateProfilePhoto(int $userId, ?array $photo): array
+    {
+        $user = $this->repository->getById($userId);
+
+        if (!$user) {
+            throw new RuntimeException('User tidak ditemukan', 404);
+        }
+
+        if ($photo === null || ($photo['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            throw new RuntimeException('Foto profil harus diupload', 422);
+        }
+
+        try {
+            $newPhotoPath = $this->fileUploadService->storeProfilePhoto($photo);
+        } catch (InvalidArgumentException $e) {
+            throw new RuntimeException($e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            throw new RuntimeException($e->getMessage(), 500);
+        }
+
+        try {
+            $this->repository->updateProfilePhotoPath($userId, $newPhotoPath);
+        } catch (RuntimeException $e) {
+            $this->fileUploadService->deletePublicUpload($newPhotoPath);
+            throw new RuntimeException($e->getMessage(), 500);
+        }
+
+        $oldPhotoPath = $user['profile_photo_path'] ?? null;
+        $this->fileUploadService->deletePublicUpload(
+            \is_string($oldPhotoPath) ? $oldPhotoPath : null
+        );
 
         return $this->profile($userId);
     }
@@ -335,6 +378,7 @@ final class ProfileService
             'phone_verified_at' => $user['phone_verified_at'],
             'email_verified' => !empty($user['email_verified_at']),
             'phone_verified' => !empty($user['phone_verified_at']),
+            'profile_photo_path' => $user['profile_photo_path'],
             'role_id' => (int) $user['role_id'],
             'role' => $user['role'],
             'position' => $user['position'],

@@ -28,6 +28,7 @@ final class ProfileRepository
                 u.phone,
                 u.email_verified_at,
                 u.phone_verified_at,
+                u.profile_photo_path,
                 u.password,
                 u.role_id,
                 r.name AS role,
@@ -158,5 +159,19 @@ final class ProfileRepository
             password_hash($password, PASSWORD_DEFAULT),
             $userId,
         ]);
+    }
+
+    public function updateProfilePhotoPath(int $userId, string $profilePhotoPath): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE users
+            SET profile_photo_path = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$profilePhotoPath, $userId]);
+
+        if ($stmt->rowCount() === 0) {
+            throw new \RuntimeException('Gagal memperbarui foto profil');
+        }
     }
 }

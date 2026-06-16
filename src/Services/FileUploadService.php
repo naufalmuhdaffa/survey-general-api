@@ -11,11 +11,18 @@ use function is_string;
 final class FileUploadService
 {
     private const SURVEY_THUMBNAIL_MAX_SIZE = 2 * 1024 * 1024;
+    private const PROFILE_PHOTO_MAX_SIZE = 3 * 1024 * 1024;
 
     private const array SURVEY_THUMBNAIL_MIME_TYPES = [
         'image/png' => 'png',
         'image/jpeg' => 'jpg',
         'image/gif' => 'gif',
+        'image/webp' => 'webp',
+    ];
+
+    private const array PROFILE_PHOTO_MIME_TYPES = [
+        'image/png' => 'png',
+        'image/jpeg' => 'jpg',
         'image/webp' => 'webp',
     ];
 
@@ -33,6 +40,23 @@ final class FileUploadService
             self::SURVEY_THUMBNAIL_MIME_TYPES,
             'thumbnail',
             'Tipe file thumbnail hanya boleh berupa png, jpg, gif, dan webp'
+        );
+    }
+
+    /**
+     * @param  array $file  Contoh: `$_FILES['photo']` yang berisi: `['name', 'type', 'tmp_name', 'size', 'error']`
+     *
+     * @return string       <br>Public path: `/uploads/profiles/{date}-{random}.jpg`
+     */
+    public function storeProfilePhoto(array $file): string
+    {
+        return $this->storePublicUpload(
+            $file,
+            'profiles',
+            self::PROFILE_PHOTO_MAX_SIZE,
+            self::PROFILE_PHOTO_MIME_TYPES,
+            'foto profil',
+            'Tipe file foto profil hanya boleh berupa png, jpg, dan webp'
         );
     }
 

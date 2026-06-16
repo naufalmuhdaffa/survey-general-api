@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20) NULL UNIQUE,
     email_verified_at DATETIME NULL,
     phone_verified_at DATETIME NULL,
+    profile_photo_path VARCHAR(255) NULL,
     password VARCHAR(255) NOT NULL,
     role_id INT UNSIGNED NOT NULL DEFAULT 1,
     position ENUM(

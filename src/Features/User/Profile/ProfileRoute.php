@@ -28,6 +28,12 @@ final class ProfileRoute implements RouteInterface
             return true;
         }
 
+        if ($path === '/users/profile/photo' && $method === 'POST') {
+            $controller = new ProfileController();
+            $controller->updatePhoto();
+            return true;
+        }
+
         if ($path === '/users/profile/email/code' && $method === 'POST') {
             $controller = new ProfileController();
             $controller->sendEmailCode();

@@ -136,6 +136,26 @@ final class ProfileController
         ], 200);
     }
 
+    public function updatePhoto(): void
+    {
+        $authUser = AuthMiddleware::handle();
+
+        try {
+            $profile = $this->service->updateProfilePhoto(
+                (int) $authUser['id'],
+                $_FILES['photo'] ?? null
+            );
+        } catch (RuntimeException $e) {
+            $this->handleRuntimeException($e);
+        }
+
+        Response::json([
+            'status' => 'success',
+            'message' => 'Foto profil berhasil diperbarui',
+            'data' => $profile,
+        ], 200);
+    }
+
     private function jsonBody(): array
     {
         $data = json_decode(file_get_contents('php://input'), true);
