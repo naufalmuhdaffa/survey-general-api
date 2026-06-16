@@ -34,6 +34,10 @@ final class UpdateQuestionService
             throw new RuntimeException('Pertanyaan tidak ditemukan di survei ini', 404);
         }
 
+        if (!$this->repository->surveyIsDraft($surveyId)) {
+            throw new RuntimeException('Isi survey tidak dapat diubah setelah dipublikasikan', 409);
+        }
+
         $allowedFields = ['question_text', 'question_type', 'is_required', 'question_order', 'page', 'parent_option_id'];
         $fields = [];
 

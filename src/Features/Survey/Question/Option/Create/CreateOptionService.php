@@ -28,6 +28,10 @@ final class CreateOptionService
             throw new RuntimeException('Pertanyaan tidak ditemukan di survei ini', 404);
         }
 
+        if (!$this->repository->surveyIsDraft($surveyId)) {
+            throw new RuntimeException('Isi survey tidak dapat diubah setelah dipublikasikan', 409);
+        }
+
         if (!$this->repository->questionTypeAllowsOptions($questionId)) {
             throw new RuntimeException('Tipe pertanyaan ini tidak mendukung opsi jawaban', 422);
         }

@@ -33,6 +33,10 @@ final class CreateQuestionService
             throw new RuntimeException('Survei tidak ditemukan', 404);
         }
 
+        if (!$this->repository->surveyIsDraft($surveyId)) {
+            throw new RuntimeException('Isi survey tidak dapat diubah setelah dipublikasikan', 409);
+        }
+
         $questionText = isset($data['question_text']) && \is_string($data['question_text'])
             ? trim($data['question_text'])
             : '';

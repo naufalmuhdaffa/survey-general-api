@@ -30,6 +30,13 @@ final class UpdateOptionRepository
         return (int) $stmt->fetchColumn() > 0;
     }
 
+    public function surveyIsDraft(int $surveyId): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM surveys WHERE id = ? AND status = 'draft'");
+        $stmt->execute([$surveyId]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
     public function optionBelongsToQuestion(int $optionId, int $questionId): bool
     {
         $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM options WHERE id = ? AND question_id = ?");

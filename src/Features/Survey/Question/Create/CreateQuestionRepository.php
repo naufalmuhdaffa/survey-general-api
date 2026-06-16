@@ -23,6 +23,13 @@ final class CreateQuestionRepository
         return (int) $stmt->fetchColumn() > 0;
     }
 
+    public function surveyIsDraft(int $surveyId): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM surveys WHERE id = ? AND status = 'draft'");
+        $stmt->execute([$surveyId]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
     public function getNextQuestionOrder(int $surveyId): int
     {
         $stmt = $this->pdo->prepare("SELECT MAX(question_order) FROM questions WHERE survey_id = ?");

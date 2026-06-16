@@ -28,6 +28,7 @@ final class UpdateSurveyService
             throw new RuntimeException('Survei tidak ditemukan', 404);
         }
 
+        $currentStatus = $this->repository->getSurveyStatus($surveyId);
         $allowedFields = ['title', 'description', 'instructions', 'estimated_time', 'status', 'opens_at', 'closes_at'];
         $fields = [];
 
@@ -72,6 +73,10 @@ final class UpdateSurveyService
 
         if (array_key_exists('status', $fields)) {
             $fields['status'] = $this->normalizeStatus($fields['status']);
+
+            if ($currentStatus !== 'draft' && $fields['status'] !== $currentStatus) {
+                throw new RuntimeException('Status survei tidak dapat diubah setelah dipublikasikan', 409);
+            }
         }
 
         if (array_key_exists('opens_at', $fields)) {

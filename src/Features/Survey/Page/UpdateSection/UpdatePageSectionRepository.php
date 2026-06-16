@@ -23,6 +23,13 @@ final class UpdatePageSectionRepository
         return (int) $stmt->fetchColumn() > 0;
     }
 
+    public function surveyIsDraft(int $surveyId): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM surveys WHERE id = ? AND status = 'draft'");
+        $stmt->execute([$surveyId]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
     public function upsertPageSection(int $surveyId, int $page, ?string $section): void
     {
         $stmt = $this->pdo->prepare("

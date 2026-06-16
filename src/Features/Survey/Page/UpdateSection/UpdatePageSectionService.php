@@ -25,6 +25,10 @@ final class UpdatePageSectionService
             throw new RuntimeException('Survei tidak ditemukan', 404);
         }
 
+        if (!$this->repository->surveyIsDraft($surveyId)) {
+            throw new RuntimeException('Isi survey tidak dapat diubah setelah dipublikasikan', 409);
+        }
+
         if (!\is_array($data) || !\array_key_exists('section', $data)) {
             throw new RuntimeException('Field section harus dikirim', 422);
         }

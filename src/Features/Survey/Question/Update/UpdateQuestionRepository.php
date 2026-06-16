@@ -23,6 +23,13 @@ final class UpdateQuestionRepository
         return (int) $stmt->fetchColumn() > 0;
     }
 
+    public function surveyIsDraft(int $surveyId): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM surveys WHERE id = ? AND status = 'draft'");
+        $stmt->execute([$surveyId]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
     public function updateQuestion(int $questionId, array $fields): void
     {
         $setClauses = [];
