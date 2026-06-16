@@ -45,7 +45,7 @@ final class ListSurveyRepository
                 AND sr.position IN ('public', ?)
             )
         )
-        AND s.status <> 'closed'
+        AND s.status IN ('open', 'upcoming')
         ORDER BY s.created_at DESC
         ");
 
