@@ -16,7 +16,6 @@ final class FileUploadService
     private const array SURVEY_THUMBNAIL_MIME_TYPES = [
         'image/png' => 'png',
         'image/jpeg' => 'jpg',
-        'image/gif' => 'gif',
         'image/webp' => 'webp',
     ];
 
@@ -39,7 +38,7 @@ final class FileUploadService
             self::SURVEY_THUMBNAIL_MAX_SIZE,
             self::SURVEY_THUMBNAIL_MIME_TYPES,
             'thumbnail',
-            'Tipe file thumbnail hanya boleh berupa png, jpg, gif, dan webp'
+            'Tipe file thumbnail hanya boleh berupa png, jpg, dan webp'
         );
     }
 
