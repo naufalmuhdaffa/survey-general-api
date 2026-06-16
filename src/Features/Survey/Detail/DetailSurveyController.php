@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Survey\Detail;
 
 use App\Helpers\Response;
-use App\Services\PrivilegeService;
 use RuntimeException;
 
 final class DetailSurveyController
@@ -19,8 +18,6 @@ final class DetailSurveyController
 
     public function detail(int $surveyId): void
     {
-        PrivilegeService::require('survey:read');
-
         try {
             $survey = $this->service->getDetail($surveyId);
         } catch (RuntimeException $e) {

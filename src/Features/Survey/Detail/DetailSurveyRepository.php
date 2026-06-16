@@ -144,6 +144,7 @@ final class DetailSurveyRepository
         SELECT COUNT(*)
         FROM surveys s
         WHERE s.id = ?
+        AND s.status IN ('open', 'upcoming')
         AND (
             NOT EXISTS (
                 SELECT 1
