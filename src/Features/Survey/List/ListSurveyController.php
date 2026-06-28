@@ -19,7 +19,7 @@ final class ListSurveyController
     public function list(): void
     {
         try {
-            $surveys = $this->service->getAllSurveys();
+            $surveys = $this->service->getAllSurveys($_GET);
         } catch (RuntimeException $e) {
             $statusCode = $e->getCode();
 
