@@ -49,13 +49,16 @@ final class UpdateRoleService
     private function normalizeRoleName(mixed $name): string
     {
         $name = \is_string($name) ? strtolower(trim($name)) : '';
+        $name = preg_replace('/\s+/', '_', $name) ?? '';
+        $name = preg_replace('/_+/', '_', $name) ?? '';
+        $name = trim($name, '_');
 
         if ($name === '') {
             throw new RuntimeException('Nama role harus diisi', 422);
         }
 
         if (!preg_match('/^[a-z0-9_]+$/', $name)) {
-            throw new RuntimeException('Nama role hanya boleh huruf kecil, angka, dan underscore', 422);
+            throw new RuntimeException('Nama role hanya boleh huruf, angka, spasi, dan underscore', 422);
         }
 
         return $name;

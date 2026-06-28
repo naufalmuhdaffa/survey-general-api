@@ -79,6 +79,9 @@ final class UpdateRolePrivilegeRepository
                 $stmt->execute($values);
             }
 
+            $stmt = $this->pdo->prepare("UPDATE roles SET updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$roleId]);
+
             $this->pdo->commit();
         } catch (Throwable $e) {
             $this->pdo->rollBack();

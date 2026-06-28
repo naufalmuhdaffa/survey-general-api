@@ -26,6 +26,8 @@ final class ListRoleService
         return [
             'id' => (int) $role['id'],
             'name' => $role['name'],
+            'user_count' => (int) $role['user_count'],
+            'active_user_count' => (int) $role['active_user_count'],
             'created_at' => $role['created_at'],
             'updated_at' => $role['updated_at'],
         ];

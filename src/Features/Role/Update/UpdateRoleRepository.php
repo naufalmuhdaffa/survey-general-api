@@ -36,7 +36,7 @@ final class UpdateRoleRepository
 
     public function updateRole(int $roleId, string $name): void
     {
-        $stmt = $this->pdo->prepare("UPDATE roles SET name = ? WHERE id = ?");
+        $stmt = $this->pdo->prepare("UPDATE roles SET name = ?, updated_at = NOW() WHERE id = ?");
         $stmt->execute([$name, $roleId]);
     }
 }
