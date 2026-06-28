@@ -26,6 +26,7 @@ final class ListUserRepository
                 u.username,
                 u.email,
                 u.phone,
+                u.profile_photo_path,
                 u.role_id,
                 r.name AS role,
                 u.position,

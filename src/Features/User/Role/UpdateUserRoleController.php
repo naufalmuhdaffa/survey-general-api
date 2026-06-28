@@ -19,7 +19,7 @@ final class UpdateUserRoleController
 
     public function update(int $userId): void
     {
-        PrivilegeService::require('user:update');
+        $currentUser = PrivilegeService::require('user:update');
 
         $data = json_decode(file_get_contents('php://input'), true);
 
@@ -31,7 +31,11 @@ final class UpdateUserRoleController
         }
 
         try {
-            $this->service->update($userId, \is_array($data) ? $data : []);
+            $this->service->update(
+                (int) $currentUser['id'],
+                $userId,
+                \is_array($data) ? $data : []
+            );
         } catch (RuntimeException $e) {
             $statusCode = $e->getCode();
 

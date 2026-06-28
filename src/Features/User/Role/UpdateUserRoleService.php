@@ -18,8 +18,12 @@ final class UpdateUserRoleService
     /**
      * @param array<string, mixed> $data
      */
-    public function update(int $userId, array $data): void
+    public function update(int $currentUserId, int $userId, array $data): void
     {
+        if ($currentUserId === $userId) {
+            throw new RuntimeException('Akun sendiri tidak bisa mengubah role sendiri', 422);
+        }
+
         $roleId = $this->normalizeRoleId($data['role_id'] ?? null);
 
         $role = $this->repository->getRoleById($roleId);

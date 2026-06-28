@@ -37,6 +37,7 @@ final class ListPromotableUserService
             'username' => $user['username'],
             'email' => $user['email'],
             'phone' => $user['phone'],
+            'profile_photo_path' => $user['profile_photo_path'],
             'role_id' => (int) $user['role_id'],
             'role' => $user['role'],
             'position' => $user['position'],
