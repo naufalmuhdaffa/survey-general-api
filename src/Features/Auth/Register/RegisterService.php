@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Auth\Register;
 
+use App\Services\CsrfService;
 use App\Services\JwtService;
 use RuntimeException;
 
@@ -18,7 +19,7 @@ final class RegisterService
         $this->verificationRepository = new RegisterVerificationRepository();
     }
 
-    public function register(array $data): string
+    public function register(array $data): array
     {
         $nik = isset($data['nik']) && \is_string($data['nik'])
             ? trim($data['nik'])
@@ -117,13 +118,20 @@ final class RegisterService
             throw new RuntimeException($e->getMessage(), 500);
         }
 
-        return JwtService::generate([
+        $csrfToken = CsrfService::generateToken();
+        $token = JwtService::generate([
             'userId' => $userId,
             'username' => $username,
             'roleId' => 1,
             'role' => 'user',
-            'position' => $position
+            'position' => $position,
+            'csrfToken' => $csrfToken,
         ]);
+
+        return [
+            'csrf_token' => $csrfToken,
+            'token' => $token,
+        ];
     }
 
     public function verifyNik(string $nik): array

@@ -40,7 +40,7 @@ if ($_ENV['APP_ENV'] === 'development' || !empty($_ENV['CORS_ALLOWED_ORIGINS']))
     }
 
     header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, Accept, X-API-Key');
+    header('Access-Control-Allow-Headers: Content-Type, Accept, X-API-Key, X-CSRF-Token');
     header('Access-Control-Max-Age: 86400');
 
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

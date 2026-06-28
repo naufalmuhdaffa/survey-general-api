@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Auth\Logout;
 
 use App\Helpers\Response;
+use App\Middleware\AuthMiddleware;
 
 final class LogoutController
 {
@@ -17,6 +18,7 @@ final class LogoutController
 
     public function logout(): void
     {
+        AuthMiddleware::handle();
         $this->service->logout();
 
         Response::json([

@@ -6,6 +6,7 @@ namespace App\Middleware;
 
 use App\Repositories\AuthRepository;
 use App\Helpers\Response;
+use App\Services\CsrfService;
 use App\Services\JwtService;
 
 final class AuthMiddleware
@@ -38,6 +39,8 @@ final class AuthMiddleware
                 'message' => 'Token sudah tidak berlaku'
             ], 401);
         }
+
+        CsrfService::enforceForUnsafeRequest($payload);
 
         $userId = (int) ($payload->data->userId ?? 0);
 

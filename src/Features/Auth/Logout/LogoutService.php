@@ -6,6 +6,7 @@ namespace App\Features\Auth\Logout;
 
 use App\Repositories\AuthRepository;
 use App\Services\CookieService;
+use App\Services\CsrfService;
 use App\Services\JwtService;
 
 final class LogoutService
@@ -32,5 +33,6 @@ final class LogoutService
         }
 
         CookieService::clearToken();
+        CsrfService::clearToken();
     }
 }

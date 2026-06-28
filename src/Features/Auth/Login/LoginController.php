@@ -6,6 +6,7 @@ namespace App\Features\Auth\Login;
 
 use App\Helpers\Response;
 use App\Services\CookieService;
+use App\Services\CsrfService;
 use RuntimeException;
 
 final class LoginController
@@ -29,7 +30,7 @@ final class LoginController
         }
 
         try {
-            $token = $this->service->login(\is_array($data) ? $data : []);
+            $session = $this->service->login(\is_array($data) ? $data : []);
         } catch (RuntimeException $e) {
             $statusCode = $e->getCode();
 
@@ -43,15 +44,15 @@ final class LoginController
             ], $statusCode);
         }
 
-        CookieService::setToken($token);
+        CookieService::setToken($session['token']);
+        CsrfService::setToken($session['csrf_token']);
 
         Response::json([
             'status' => 'success',
             'message' => 'Login berhasil',
             'data' => [
-                'token' => $token,
+                'authenticated' => true,
             ],
-            'token' => $token,
         ], 200);
     }
 }

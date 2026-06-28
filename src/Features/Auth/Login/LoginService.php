@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Auth\Login;
 
+use App\Services\CsrfService;
 use App\Services\JwtService;
 use RuntimeException;
 
@@ -16,7 +17,7 @@ final class LoginService
         $this->repository = new LoginRepository();
     }
 
-    public function login(array $data): string
+    public function login(array $data): array
     {
         $nik = isset($data['nik']) && \is_string($data['nik'])
             ? trim($data['nik'])
@@ -44,12 +45,19 @@ final class LoginService
             throw new RuntimeException('NIK/username atau password salah', 401);
         }
 
-        return JwtService::generate([
+        $csrfToken = CsrfService::generateToken();
+        $token = JwtService::generate([
             'userId' => $identity['id'],
             'username' => $identity['username'],
             'roleId' => $identity['role_id'],
             'role' => $identity['role'],
-            'position' => $identity['position']
+            'position' => $identity['position'],
+            'csrfToken' => $csrfToken,
         ]);
+
+        return [
+            'csrf_token' => $csrfToken,
+            'token' => $token,
+        ];
     }
 }

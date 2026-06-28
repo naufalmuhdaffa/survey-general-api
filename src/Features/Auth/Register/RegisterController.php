@@ -6,6 +6,7 @@ namespace App\Features\Auth\Register;
 
 use App\Helpers\Response;
 use App\Services\CookieService;
+use App\Services\CsrfService;
 use RuntimeException;
 
 final class RegisterController
@@ -31,7 +32,7 @@ final class RegisterController
         }
 
         try {
-            $token = $this->service->register(\is_array($data) ? $data : []);
+            $session = $this->service->register(\is_array($data) ? $data : []);
         } catch (RuntimeException $e) {
             $statusCode = $e->getCode();
 
@@ -45,15 +46,15 @@ final class RegisterController
             ], $statusCode);
         }
 
-        CookieService::setToken($token);
+        CookieService::setToken($session['token']);
+        CsrfService::setToken($session['csrf_token']);
 
         Response::json([
             'status' => 'success',
             'message' => 'Registrasi berhasil',
             'data' => [
-                'token' => $token,
+                'authenticated' => true,
             ],
-            'token' => $token,
         ], 201);
     }
 

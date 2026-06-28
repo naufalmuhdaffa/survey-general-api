@@ -42,23 +42,8 @@ final class JwtService
         }
     }
 
-    public static function bearerToken(): ?string
-    {
-        $headers = getallheaders();
-
-        if (!isset($headers['Authorization'])) {
-            return null;
-        }
-
-        if (preg_match('/Bearer\s+(\S+)/', $headers['Authorization'], $m)) {
-            return $m[1];
-        }
-
-        return null;
-    }
-
     public static function token(): ?string
     {
-        return self::bearerToken() ?? CookieService::token();
+        return CookieService::token();
     }
 }
