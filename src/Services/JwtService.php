@@ -23,7 +23,13 @@ final class JwtService
 
     private static function secret(): string
     {
-        return $_ENV['JWT_SECRET'] ?? 'secret-key';
+        $secret = $_ENV['JWT_SECRET'] ?? '';
+        
+        if (!\is_string($secret) || \strlen($secret) < 32) {
+            throw new \RuntimeException('JWT_SECRET belum dikonfigurasi dengan aman');
+        }
+
+        return $secret;
     }
 
     public static function verify(string $token): ?stdClass
