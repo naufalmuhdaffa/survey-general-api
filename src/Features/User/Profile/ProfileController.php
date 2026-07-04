@@ -22,7 +22,10 @@ final class ProfileController
         $authUser = AuthMiddleware::handle();
 
         try {
-            $profile = $this->service->profile((int) $authUser['id']);
+            $profile = $this->service->profile(
+                (int) $authUser['id'],
+                $this->effectiveRoleId($authUser)
+            );
         } catch (RuntimeException $e) {
             $this->handleRuntimeException($e);
         }
@@ -39,7 +42,11 @@ final class ProfileController
         $data = $this->jsonBody();
 
         try {
-            $profile = $this->service->updateProfile((int) $authUser['id'], $data);
+            $profile = $this->service->updateProfile(
+                (int) $authUser['id'],
+                $data,
+                $this->effectiveRoleId($authUser)
+            );
         } catch (RuntimeException $e) {
             $this->handleRuntimeException($e);
         }
@@ -90,7 +97,11 @@ final class ProfileController
         $data = $this->jsonBody();
 
         try {
-            $profile = $this->service->verifyEmailCode((int) $authUser['id'], $data);
+            $profile = $this->service->verifyEmailCode(
+                (int) $authUser['id'],
+                $data,
+                $this->effectiveRoleId($authUser)
+            );
         } catch (RuntimeException $e) {
             $this->handleRuntimeException($e);
         }
@@ -124,7 +135,11 @@ final class ProfileController
         $data = $this->jsonBody();
 
         try {
-            $profile = $this->service->verifyPhoneOtp((int) $authUser['id'], $data);
+            $profile = $this->service->verifyPhoneOtp(
+                (int) $authUser['id'],
+                $data,
+                $this->effectiveRoleId($authUser)
+            );
         } catch (RuntimeException $e) {
             $this->handleRuntimeException($e);
         }
@@ -143,7 +158,8 @@ final class ProfileController
         try {
             $profile = $this->service->updateProfilePhoto(
                 (int) $authUser['id'],
-                $_FILES['photo'] ?? null
+                $_FILES['photo'] ?? null,
+                $this->effectiveRoleId($authUser)
             );
         } catch (RuntimeException $e) {
             $this->handleRuntimeException($e);
@@ -182,5 +198,12 @@ final class ProfileController
             'status' => 'error',
             'message' => $e->getMessage(),
         ], $statusCode);
+    }
+
+    private function effectiveRoleId(array $authUser): ?int
+    {
+        return isset($authUser['effective_role_id']) && \is_numeric($authUser['effective_role_id'])
+            ? (int) $authUser['effective_role_id']
+            : null;
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\User\Profile;
 
 use App\Features\Auth\Register\RegisterVerificationService;
+use App\Repositories\PrivilegeRepository;
 use App\Services\FileUploadService;
 use InvalidArgumentException;
 use RuntimeException;
@@ -14,18 +15,20 @@ final class ProfileService
     private ProfileRepository $repository;
     private RegisterVerificationService $verificationService;
     private FileUploadService $fileUploadService;
+    private PrivilegeRepository $privilegeRepository;
 
     public function __construct()
     {
         $this->repository = new ProfileRepository();
         $this->verificationService = new RegisterVerificationService();
         $this->fileUploadService = new FileUploadService();
+        $this->privilegeRepository = new PrivilegeRepository();
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function profile(int $userId): array
+    public function profile(int $userId, ?int $effectiveRoleId = null): array
     {
         $user = $this->repository->getById($userId);
 
@@ -33,14 +36,14 @@ final class ProfileService
             throw new RuntimeException('User tidak ditemukan', 404);
         }
 
-        return $this->formatProfile($user);
+        return $this->formatProfile($user, $effectiveRoleId);
     }
 
     /**
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    public function updateProfile(int $userId, array $data): array
+    public function updateProfile(int $userId, array $data, ?int $effectiveRoleId = null): array
     {
         $this->guardReadonlyFields($data);
         $currentUser = $this->repository->getById($userId);
@@ -101,7 +104,7 @@ final class ProfileService
             $resetPhoneVerification
         );
 
-        return $this->profile($userId);
+        return $this->profile($userId, $effectiveRoleId);
     }
 
     public function sendEmailCode(int $userId): void
@@ -116,7 +119,7 @@ final class ProfileService
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    public function verifyEmailCode(int $userId, array $data): array
+    public function verifyEmailCode(int $userId, array $data, ?int $effectiveRoleId = null): array
     {
         $user = $this->requireUserWithContact($userId, 'email');
         $this->verificationService->verifyEmailCode([
@@ -125,7 +128,7 @@ final class ProfileService
         ]);
         $this->repository->markEmailVerified($userId);
 
-        return $this->profile($userId);
+        return $this->profile($userId, $effectiveRoleId);
     }
 
     public function sendPhoneOtp(int $userId): void
@@ -140,7 +143,7 @@ final class ProfileService
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */
-    public function verifyPhoneOtp(int $userId, array $data): array
+    public function verifyPhoneOtp(int $userId, array $data, ?int $effectiveRoleId = null): array
     {
         $user = $this->requireUserWithContact($userId, 'phone');
         $this->verificationService->verifyPhoneOtp([
@@ -149,14 +152,14 @@ final class ProfileService
         ]);
         $this->repository->markPhoneVerified($userId);
 
-        return $this->profile($userId);
+        return $this->profile($userId, $effectiveRoleId);
     }
 
     /**
      * @param array<string, mixed>|null $photo
      * @return array<string, mixed>
      */
-    public function updateProfilePhoto(int $userId, ?array $photo): array
+    public function updateProfilePhoto(int $userId, ?array $photo, ?int $effectiveRoleId = null): array
     {
         $user = $this->repository->getById($userId);
 
@@ -188,7 +191,7 @@ final class ProfileService
             \is_string($oldPhotoPath) ? $oldPhotoPath : null
         );
 
-        return $this->profile($userId);
+        return $this->profile($userId, $effectiveRoleId);
     }
 
     /**
@@ -365,8 +368,11 @@ final class ProfileService
      * @param array<string, mixed> $user
      * @return array<string, mixed>
      */
-    private function formatProfile(array $user): array
+    private function formatProfile(array $user, ?int $effectiveRoleId = null): array
     {
+        $roleId = (int) $user['role_id'];
+        $privilegeRoleId = $effectiveRoleId ?? $roleId;
+
         return [
             'id' => (int) $user['id'],
             'nik' => $user['nik'],
@@ -379,9 +385,10 @@ final class ProfileService
             'email_verified' => !empty($user['email_verified_at']),
             'phone_verified' => !empty($user['phone_verified_at']),
             'profile_photo_path' => $user['profile_photo_path'],
-            'role_id' => (int) $user['role_id'],
+            'role_id' => $roleId,
             'role' => $user['role'],
             'position' => $user['position'],
+            'privileges' => $this->privilegeRepository->getPrivilegeNamesByRoleId($privilegeRoleId),
             'address' => $this->identityAddress((string) $user['nik']),
             'is_active' => (bool) $user['is_active'],
             'created_at' => $user['created_at'],

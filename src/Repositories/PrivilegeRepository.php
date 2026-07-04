@@ -28,4 +28,21 @@ final class PrivilegeRepository
         $stmt->execute([$roleId, $privilege]);
         return (int) $stmt->fetchColumn() > 0;
     }
+
+    public function getPrivilegeNamesByRoleId(int $roleId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT p.name
+            FROM role_privileges rp
+            JOIN privileges p ON p.id = rp.privilege_id
+            WHERE rp.role_id = ?
+            ORDER BY p.name ASC
+        ");
+        $stmt->execute([$roleId]);
+
+        return array_values(array_filter(array_map(
+            static fn (array $privilege): string => (string) $privilege['name'],
+            $stmt->fetchAll()
+        )));
+    }
 }
