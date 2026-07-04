@@ -10,6 +10,8 @@ final class ListUserHistoryService
     private const int MAX_SEARCH_LENGTH = 120;
     private const array VALID_PER_PAGES = [5, 10, 25, 50, 100];
     private const array VALID_POSITIONS = ['asn', 'non_asn', 'public'];
+    private const array VALID_SORT_DIRECTIONS = ['asc', 'desc'];
+    private const array VALID_SORT_FIELDS = ['date', 'positions', 'status', 'title'];
     private const array VALID_SORTS = ['newest', 'oldest'];
     private const array VALID_STATUSES = ['draft', 'submitted'];
 
@@ -29,7 +31,15 @@ final class ListUserHistoryService
         $search = $this->normalizeSearch($query['search'] ?? '');
         $position = $this->normalizeOption($query['position'] ?? '', self::VALID_POSITIONS);
         $status = $this->normalizeOption($query['status'] ?? '', self::VALID_STATUSES);
-        $sort = $this->normalizeSort($query['sort'] ?? 'newest');
+        $sortBy = $this->normalizeOption($query['sort_by'] ?? 'date', self::VALID_SORT_FIELDS) ?? 'date';
+        $sortDirection = $this->normalizeSortDirection($query['sort_direction'] ?? 'desc');
+
+        if (!isset($query['sort_by']) && isset($query['sort'])) {
+            $legacySort = $this->normalizeSort($query['sort']);
+            $sortBy = 'date';
+            $sortDirection = $legacySort === 'oldest' ? 'asc' : 'desc';
+        }
+
         $page = $this->normalizePositiveInteger($query['page'] ?? 1, 1);
         $perPage = $this->normalizePerPage($query['per_page'] ?? self::DEFAULT_PER_PAGE);
         $total = $this->repository->countHistory($userId, $search, $position, $status);
@@ -45,7 +55,8 @@ final class ListUserHistoryService
                     $search,
                     $position,
                     $status,
-                    $sort,
+                    $sortBy,
+                    $sortDirection,
                     $perPage,
                     $offset,
                 )
@@ -115,6 +126,19 @@ final class ListUserHistoryService
         return \in_array($normalizedSort, self::VALID_SORTS, true)
             ? $normalizedSort
             : 'newest';
+    }
+
+    private function normalizeSortDirection(mixed $sortDirection): string
+    {
+        if (!\is_string($sortDirection)) {
+            return 'desc';
+        }
+
+        $normalizedSortDirection = strtolower(trim($sortDirection));
+
+        return \in_array($normalizedSortDirection, self::VALID_SORT_DIRECTIONS, true)
+            ? $normalizedSortDirection
+            : 'desc';
     }
 
     /**

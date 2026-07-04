@@ -52,13 +52,14 @@ final class ListUserHistoryRepository
         string $search,
         ?string $position,
         ?string $status,
-        string $sort,
+        string $sortBy,
+        string $sortDirection,
         int $limit,
         int $offset,
     ): array {
         $params = [$userId];
         $where = $this->filterCondition($search, $position, $status, $params);
-        $orderDirection = $sort === 'oldest' ? 'ASC' : 'DESC';
+        $orderBy = $this->sortClause($sortBy, $sortDirection);
         $effectiveStatus = $this->effectiveStatusExpression();
 
         $stmt = $this->pdo->prepare("
@@ -89,7 +90,7 @@ final class ListUserHistoryRepository
             FROM responses r
             JOIN surveys s ON s.id = r.survey_id
             WHERE {$where}
-            ORDER BY COALESCE(r.submitted_at, r.updated_at, r.created_at) {$orderDirection}, r.id {$orderDirection}
+            {$orderBy}
             LIMIT ? OFFSET ?
         ");
 
@@ -102,6 +103,19 @@ final class ListUserHistoryRepository
         $stmt->execute();
 
         return $stmt->fetchAll();
+    }
+
+    private function sortClause(string $sortBy, string $sortDirection): string
+    {
+        $direction = $sortDirection === 'asc' ? 'ASC' : 'DESC';
+        $column = match ($sortBy) {
+            'positions' => 'positions',
+            'status' => 'r.status',
+            'title' => 's.title',
+            default => 'COALESCE(r.submitted_at, r.updated_at, r.created_at)',
+        };
+
+        return "ORDER BY {$column} {$direction}, r.id {$direction}";
     }
 
     private function filterCondition(
