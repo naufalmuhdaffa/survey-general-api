@@ -55,13 +55,13 @@ final class CreateQuestionService
 
         $isRequired = $this->normalizeIsRequired($data['is_required'] ?? false);
         $page = $this->normalizePositiveInteger($data['page'] ?? 1, 'Page harus lebih dari 0');
-        $parentOptionId = null;
+        $parentOptionId = $this->normalizeOptionalParentOptionId($data['parent_option_id'] ?? null);
 
-        if (isset($data['parent_option_id'])) {
-            $parentOptionId = $this->normalizePositiveInteger(
-                $data['parent_option_id'],
-                'Parent option id (parent_option_id) harus lebih dari 0'
-            );
+        if (
+            $parentOptionId !== null
+            && !$this->repository->optionBelongsToSurvey($parentOptionId, $surveyId)
+        ) {
+            throw new RuntimeException('Opsi induk pertanyaan kondisional tidak valid', 422);
         }
 
         $questionOrder = $this->repository->getNextQuestionOrder($surveyId);
@@ -117,5 +117,21 @@ final class CreateQuestionService
         }
 
         return $integer;
+    }
+
+    private function normalizeOptionalParentOptionId(mixed $value): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (\is_string($value) && trim($value) === '') {
+            return null;
+        }
+
+        return $this->normalizePositiveInteger(
+            $value,
+            'Opsi induk pertanyaan kondisional tidak valid'
+        );
     }
 }

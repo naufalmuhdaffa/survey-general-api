@@ -30,6 +30,19 @@ final class UpdateQuestionRepository
         return (int) $stmt->fetchColumn() > 0;
     }
 
+    public function optionBelongsToSurvey(int $optionId, int $surveyId): bool
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT COUNT(*)
+            FROM options o
+            JOIN questions q ON q.id = o.question_id
+            WHERE o.id = ?
+                AND q.survey_id = ?
+        ");
+        $stmt->execute([$optionId, $surveyId]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
     public function updateQuestion(int $questionId, array $fields): void
     {
         $setClauses = [];

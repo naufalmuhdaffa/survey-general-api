@@ -37,6 +37,19 @@ final class CreateQuestionRepository
         return (int) $stmt->fetchColumn() + 1;
     }
 
+    public function optionBelongsToSurvey(int $optionId, int $surveyId): bool
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT COUNT(*)
+            FROM options o
+            JOIN questions q ON q.id = o.question_id
+            WHERE o.id = ?
+                AND q.survey_id = ?
+        ");
+        $stmt->execute([$optionId, $surveyId]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
     public function createQuestion(
         int $surveyId,
         string $questionText,

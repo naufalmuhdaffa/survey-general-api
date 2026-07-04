@@ -84,12 +84,19 @@ final class UpdateQuestionService
         }
 
         if (array_key_exists('parent_option_id', $fields)) {
-            $fields['parent_option_id'] = $fields['parent_option_id'] === null
-                ? null
-                : $this->normalizePositiveInteger(
+            $fields['parent_option_id'] = $this->normalizeOptionalParentOptionId(
+                $fields['parent_option_id']
+            );
+
+            if (
+                $fields['parent_option_id'] !== null
+                && !$this->repository->optionBelongsToSurvey(
                     $fields['parent_option_id'],
-                    'Parent option id (parent_option_id) harus berupa bilangan bulat lebih dari 0'
-                );
+                    $surveyId
+                )
+            ) {
+                throw new RuntimeException('Opsi induk pertanyaan kondisional tidak valid', 422);
+            }
         }
 
         $this->repository->updateQuestion($questionId, $fields);
@@ -135,5 +142,21 @@ final class UpdateQuestionService
         }
 
         return $integer;
+    }
+
+    private function normalizeOptionalParentOptionId(mixed $value): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (\is_string($value) && trim($value) === '') {
+            return null;
+        }
+
+        return $this->normalizePositiveInteger(
+            $value,
+            'Opsi induk pertanyaan kondisional tidak valid'
+        );
     }
 }

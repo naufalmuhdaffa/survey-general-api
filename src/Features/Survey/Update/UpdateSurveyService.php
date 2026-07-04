@@ -28,7 +28,13 @@ final class UpdateSurveyService
             throw new RuntimeException('Survei tidak ditemukan', 404);
         }
 
-        $currentStatus = $this->repository->getSurveyStatus($surveyId);
+        $currentSurvey = $this->repository->getSurveyState($surveyId);
+
+        if ($currentSurvey === null) {
+            throw new RuntimeException('Survei tidak ditemukan', 404);
+        }
+
+        $currentStatus = (string) $currentSurvey['status'];
         $allowedFields = ['title', 'description', 'instructions', 'estimated_time', 'status', 'opens_at', 'closes_at'];
         $fields = [];
 
@@ -74,7 +80,7 @@ final class UpdateSurveyService
         if (array_key_exists('status', $fields)) {
             $fields['status'] = $this->normalizeStatus($fields['status']);
 
-            if ($currentStatus !== 'draft' && $fields['status'] !== $currentStatus) {
+            if ($currentStatus !== 'draft' && $fields['status'] === 'draft') {
                 throw new RuntimeException('Status survei tidak dapat diubah setelah dipublikasikan', 409);
             }
         }
@@ -87,11 +93,31 @@ final class UpdateSurveyService
             $fields['closes_at'] = $this->normalizeDateTime($fields['closes_at'], 'Format closes_at tidak valid');
         }
 
-        $opensAt = $fields['opens_at'] ?? null;
-        $closesAt = $fields['closes_at'] ?? null;
+        $opensAt = array_key_exists('opens_at', $fields)
+            ? $fields['opens_at']
+            : $currentSurvey['opens_at'];
+        $closesAt = array_key_exists('closes_at', $fields)
+            ? $fields['closes_at']
+            : $currentSurvey['closes_at'];
 
         if ($opensAt !== null && $closesAt !== null && strtotime($opensAt) >= strtotime($closesAt)) {
             throw new RuntimeException('Waktu pembukaan (opens_at) harus lebih awal dari waktu penutupan (closes_at)', 422);
+        }
+
+        if (
+            (
+                array_key_exists('status', $fields)
+                && $fields['status'] !== 'draft'
+            )
+            || (
+                $currentStatus !== 'draft'
+                && (
+                    array_key_exists('opens_at', $fields)
+                    || array_key_exists('closes_at', $fields)
+                )
+            )
+        ) {
+            $fields['status'] = $this->resolveScheduledStatus($opensAt, $closesAt);
         }
 
         if ($hasPositions) {
@@ -114,6 +140,21 @@ final class UpdateSurveyService
         }
 
         return $status;
+    }
+
+    private function resolveScheduledStatus(?string $opensAt, ?string $closesAt): string
+    {
+        $now = time();
+
+        if ($closesAt !== null && strtotime($closesAt) <= $now) {
+            return 'closed';
+        }
+
+        if ($opensAt !== null && strtotime($opensAt) > $now) {
+            return 'upcoming';
+        }
+
+        return 'open';
     }
 
     private function normalizeOptionalText(mixed $value, string $message): ?string

@@ -47,6 +47,10 @@ final class CreateSurveyService
             throw new RuntimeException('Waktu pembukaan (opens_at) harus lebih awal dari waktu penutupan (closes_at)', 422);
         }
 
+        if ($status !== 'draft') {
+            $status = $this->resolveScheduledStatus($opensAt, $closesAt);
+        }
+
         $positions = $this->normalizePositions($data['position'] ?? []);
         $thumbnailPath = null;
 
@@ -80,6 +84,21 @@ final class CreateSurveyService
         }
 
         return $status;
+    }
+
+    private function resolveScheduledStatus(?string $opensAt, ?string $closesAt): string
+    {
+        $now = time();
+
+        if ($closesAt !== null && strtotime($closesAt) <= $now) {
+            return 'closed';
+        }
+
+        if ($opensAt !== null && strtotime($opensAt) > $now) {
+            return 'upcoming';
+        }
+
+        return 'open';
     }
 
     private function normalizeOptionalText(mixed $value, string $message): ?string

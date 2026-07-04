@@ -23,13 +23,17 @@ final class UpdateSurveyRepository
         return (int) $stmt->fetchColumn() > 0;
     }
 
-    public function getSurveyStatus(int $surveyId): ?string
+    public function getSurveyState(int $surveyId): ?array
     {
-        $stmt = $this->pdo->prepare("SELECT status FROM surveys WHERE id = ?");
+        $stmt = $this->pdo->prepare("
+            SELECT status, opens_at, closes_at
+            FROM surveys
+            WHERE id = ?
+        ");
         $stmt->execute([$surveyId]);
-        $status = $stmt->fetchColumn();
+        $survey = $stmt->fetch();
 
-        return \is_string($status) ? $status : null;
+        return \is_array($survey) ? $survey : null;
     }
 
     public function updateSurvey(int $surveyId, array $fields): void
