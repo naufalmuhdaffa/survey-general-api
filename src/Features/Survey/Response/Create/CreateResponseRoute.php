@@ -16,11 +16,23 @@ final class CreateResponseRoute implements RouteInterface
             && is_numeric($segments[1])
             && $segments[2] === 'responses'
             && !isset($segments[3])
-            && $method === 'POST'
         ) {
             $controller = new CreateResponseController();
-            $controller->create((int) $segments[1]);
-            return true;
+
+            if ($method === 'GET') {
+                $controller->detail((int) $segments[1]);
+                return true;
+            }
+
+            if ($method === 'PUT') {
+                $controller->saveDraft((int) $segments[1]);
+                return true;
+            }
+
+            if ($method === 'POST') {
+                $controller->create((int) $segments[1]);
+                return true;
+            }
         }
 
         return false;

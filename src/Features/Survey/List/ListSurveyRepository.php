@@ -46,6 +46,7 @@ final class ListSurveyRepository
         ?string $status,
         ?string $position,
         ?string $accountPosition,
+        ?int $userId,
         int $limit,
         int $offset,
     ): array {
@@ -57,6 +58,19 @@ final class ListSurveyRepository
             $accountPosition,
             $params,
         );
+        $responseSelect = $userId !== null
+            ? ",
+                ur.status AS user_response_status,
+                ur.submitted_at AS user_response_submitted_at,
+                ur.current_page AS user_response_current_page"
+            : ",
+                NULL AS user_response_status,
+                NULL AS user_response_submitted_at,
+                NULL AS user_response_current_page";
+        $responseJoin = $userId !== null
+            ? "LEFT JOIN responses ur ON ur.survey_id = s.id AND ur.user_id = ?"
+            : "";
+
         $stmt = $this->pdo->prepare("
             SELECT
                 s.id,
@@ -76,11 +90,17 @@ final class ListSurveyRepository
                     FROM survey_restrictions sr
                     WHERE sr.survey_id = s.id
                 ), '') AS positions
+                {$responseSelect}
             FROM surveys s
+            {$responseJoin}
             WHERE {$where}
             ORDER BY s.created_at DESC
             LIMIT ? OFFSET ?
         ");
+
+        if ($userId !== null) {
+            array_unshift($params, $userId);
+        }
 
         foreach ($params as $index => $param) {
             $stmt->bindValue($index + 1, $param);

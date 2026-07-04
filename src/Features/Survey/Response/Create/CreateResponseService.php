@@ -19,19 +19,73 @@ final class CreateResponseService
     /**
      * @param array<string, mixed> $data
      */
+    public function detail(int $surveyId, int $userId, string $position): array
+    {
+        $this->ensureSurveyCanBeFilled($surveyId, $position);
+
+        return $this->repository->getUserResponse($surveyId, $userId) ?? [
+            'status' => null,
+            'current_page' => 0,
+            'submitted_at' => null,
+            'answers' => [],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function saveDraft(int $surveyId, int $userId, string $position, array $data): array
+    {
+        $this->ensureSurveyCanBeFilled($surveyId, $position);
+
+        if ($this->repository->userHasSubmitted($surveyId, $userId)) {
+            throw new RuntimeException('Anda sudah mengirim survei ini', 409);
+        }
+
+        $answers = $data['answers'] ?? [];
+
+        if (!\is_array($answers)) {
+            throw new RuntimeException('Field jawaban (answers) harus berupa array', 422);
+        }
+
+        $currentPage = $this->normalizeCurrentPage($data['page'] ?? 0);
+        $questions = $this->repository->getQuestionsBySurveyId($surveyId);
+        $optionIdsByQuestionId = $this->repository->getOptionIdsByQuestionIds(array_keys($questions));
+        $normalizedAnswers = $this->normalizeAnswers($answers, $questions, $optionIdsByQuestionId, false);
+
+        try {
+            $responseId = $this->repository->saveDraftResponse(
+                $surveyId,
+                $userId,
+                $currentPage,
+                $normalizedAnswers
+            );
+        } catch (Throwable $e) {
+            throw new RuntimeException('Gagal menyimpan draft response', 500, $e);
+        }
+
+        return [
+            'id' => $responseId,
+            'status' => 'draft',
+            'current_page' => $currentPage,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(int $surveyId, int $userId, string $position, array $data): int
     {
-        if (!$this->repository->surveyExists($surveyId)) {
-            throw new RuntimeException('Survei tidak ditemukan', 404);
-        }
+        return $this->submit($surveyId, $userId, $position, $data);
+    }
 
-        if (!$this->repository->surveyIsOpen($surveyId)) {
-            throw new RuntimeException('Survei belum dibuka atau sudah ditutup', 422);
-        }
-
-        if (!$this->repository->userCanAccessSurvey($surveyId, $position)) {
-            throw new RuntimeException('Anda tidak memiliki hak akses untuk survei ini', 403);
-        }
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function submit(int $surveyId, int $userId, string $position, array $data): int
+    {
+        $this->ensureSurveyCanBeFilled($surveyId, $position);
 
         if ($this->repository->userHasSubmitted($surveyId, $userId)) {
             throw new RuntimeException('Anda sudah mengisi survei ini', 409);
@@ -45,12 +99,27 @@ final class CreateResponseService
 
         $questions = $this->repository->getQuestionsBySurveyId($surveyId);
         $optionIdsByQuestionId = $this->repository->getOptionIdsByQuestionIds(array_keys($questions));
-        $normalizedAnswers = $this->normalizeAnswers($answers, $questions, $optionIdsByQuestionId);
+        $normalizedAnswers = $this->normalizeAnswers($answers, $questions, $optionIdsByQuestionId, true);
 
         try {
-            return $this->repository->createResponse($surveyId, $userId, $normalizedAnswers);
+            return $this->repository->submitResponse($surveyId, $userId, $normalizedAnswers);
         } catch (Throwable $e) {
             throw new RuntimeException('Gagal menyimpan response', 500, $e);
+        }
+    }
+
+    private function ensureSurveyCanBeFilled(int $surveyId, string $position): void
+    {
+        if (!$this->repository->surveyExists($surveyId)) {
+            throw new RuntimeException('Survei tidak ditemukan', 404);
+        }
+
+        if (!$this->repository->surveyIsOpen($surveyId)) {
+            throw new RuntimeException('Survei belum dibuka atau sudah ditutup', 422);
+        }
+
+        if (!$this->repository->userCanAccessSurvey($surveyId, $position)) {
+            throw new RuntimeException('Anda tidak memiliki hak akses untuk survei ini', 403);
         }
     }
 
@@ -60,7 +129,12 @@ final class CreateResponseService
      * @param array<int, array<int, bool>> $optionIdsByQuestionId
      * @return list<array<string, int|string>>
      */
-    private function normalizeAnswers(array $answers, array $questions, array $optionIdsByQuestionId): array
+    private function normalizeAnswers(
+        array $answers,
+        array $questions,
+        array $optionIdsByQuestionId,
+        bool $validateRequired,
+    ): array
     {
         $normalizedAnswers = [];
         $answeredQuestionIds = [];
@@ -107,7 +181,9 @@ final class CreateResponseService
             }
         }
 
-        $this->validateRequiredQuestions($questions, $answeredQuestionIds, $normalizedAnswers);
+        if ($validateRequired) {
+            $this->validateRequiredQuestions($questions, $answeredQuestionIds, $normalizedAnswers);
+        }
 
         return $normalizedAnswers;
     }
@@ -239,5 +315,18 @@ final class CreateResponseService
         }
 
         return $integer;
+    }
+
+    private function normalizeCurrentPage(mixed $value): int
+    {
+        if (\is_bool($value)) {
+            return 0;
+        }
+
+        $integer = filter_var($value, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 0],
+        ]);
+
+        return $integer === false ? 0 : $integer;
     }
 }

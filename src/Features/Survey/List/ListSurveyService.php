@@ -25,6 +25,7 @@ final class ListSurveyService
     public function getAllSurveys(array $query = []): array
     {
         $accountPosition = null;
+        $userId = null;
         $token = JwtService::token();
 
         if ($token !== null) {
@@ -35,6 +36,9 @@ final class ListSurveyService
             }
 
             $accountPosition = $payload->data->position ?? null;
+            $userId = isset($payload->data->userId) && \is_numeric($payload->data->userId)
+                ? (int) $payload->data->userId
+                : null;
         }
 
         $search = $this->normalizeSearch($query['search'] ?? '');
@@ -56,6 +60,7 @@ final class ListSurveyService
             $status,
             $position,
             $this->normalizeOption($accountPosition, self::VALID_POSITIONS),
+            $userId,
             $perPage,
             $offset,
         );
@@ -132,6 +137,11 @@ final class ListSurveyService
             'opens_at' => $survey['opens_at'],
             'closes_at' => $survey['closes_at'],
             'positions' => $positions,
+            'user_response_status' => $survey['user_response_status'] ?? null,
+            'user_response_submitted_at' => $survey['user_response_submitted_at'] ?? null,
+            'user_response_current_page' => isset($survey['user_response_current_page'])
+                ? (int) $survey['user_response_current_page']
+                : null,
         ];
     }
 }
