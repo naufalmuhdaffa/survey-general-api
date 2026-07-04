@@ -16,6 +16,17 @@ final class ManageSurveyRepository
         $this->pdo = Database::connection();
     }
 
+    private function effectiveStatusExpression(string $alias = 's'): string
+    {
+        return "CASE
+            WHEN {$alias}.status = 'draft' THEN 'draft'
+            WHEN {$alias}.status = 'closed' THEN 'closed'
+            WHEN {$alias}.closes_at IS NOT NULL AND {$alias}.closes_at <= NOW() THEN 'closed'
+            WHEN {$alias}.opens_at IS NOT NULL AND {$alias}.opens_at > NOW() THEN 'upcoming'
+            ELSE 'open'
+        END";
+    }
+
     public function countSurveys(string $search, ?string $status, ?string $position): int
     {
         $params = [];
@@ -48,6 +59,7 @@ final class ManageSurveyRepository
         $params = [];
         $where = $this->filterCondition($search, $status, $position, $params);
         $orderBy = $this->sortClause($sortBy, $sortDirection);
+        $effectiveStatus = $this->effectiveStatusExpression();
 
         $stmt = $this->pdo->prepare("
             SELECT
@@ -57,7 +69,7 @@ final class ManageSurveyRepository
                 s.instructions,
                 s.estimated_time,
                 COALESCE(s.thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path,
-                s.status,
+                {$effectiveStatus} AS status,
                 s.opens_at,
                 s.closes_at,
                 s.created_at,
@@ -110,10 +122,11 @@ final class ManageSurveyRepository
         }
 
         $direction = $sortDirection === 'desc' ? 'DESC' : 'ASC';
+        $effectiveStatus = '(' . $this->effectiveStatusExpression() . ')';
         $column = match ($sortBy) {
             'opens_at' => 's.opens_at',
             'positions' => 'positions',
-            'status' => 's.status',
+            'status' => $effectiveStatus,
             'title' => 's.title',
             default => 's.updated_at',
         };
@@ -132,6 +145,7 @@ final class ManageSurveyRepository
     ): string
     {
         $conditions = [];
+        $effectiveStatus = $this->effectiveStatusExpression();
 
         if ($search !== '') {
             $keyword = '%' . $search . '%';
@@ -140,13 +154,13 @@ final class ManageSurveyRepository
             $conditions[] = "(
                 s.title LIKE ?
                 OR s.description LIKE ?
-                OR s.status LIKE ?
+                OR ({$effectiveStatus}) LIKE ?
                 OR u.full_name LIKE ?
             )";
         }
 
         if ($status !== null) {
-            $conditions[] = 's.status = ?';
+            $conditions[] = "({$effectiveStatus}) = ?";
             $params[] = $status;
         }
 

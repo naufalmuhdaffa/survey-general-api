@@ -17,6 +17,17 @@ final class CreateResponseRepository
         $this->pdo = Database::connection();
     }
 
+    private function effectiveStatusExpression(string $alias = 's'): string
+    {
+        return "CASE
+            WHEN {$alias}.status = 'draft' THEN 'draft'
+            WHEN {$alias}.status = 'closed' THEN 'closed'
+            WHEN {$alias}.closes_at IS NOT NULL AND {$alias}.closes_at <= NOW() THEN 'closed'
+            WHEN {$alias}.opens_at IS NOT NULL AND {$alias}.opens_at > NOW() THEN 'upcoming'
+            ELSE 'open'
+        END";
+    }
+
     public function surveyExists(int $surveyId): bool
     {
         $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM surveys WHERE id = ?");
@@ -26,11 +37,13 @@ final class CreateResponseRepository
 
     public function surveyIsOpen(int $surveyId): bool
     {
+        $effectiveStatus = $this->effectiveStatusExpression();
+
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*)
-            FROM surveys
-            WHERE id = ?
-            AND status = 'open'
+            FROM surveys s
+            WHERE s.id = ?
+            AND ({$effectiveStatus}) = 'open'
         ");
         $stmt->execute([$surveyId]);
         return (int) $stmt->fetchColumn() > 0;

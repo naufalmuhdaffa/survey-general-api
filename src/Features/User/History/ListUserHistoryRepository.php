@@ -16,6 +16,17 @@ final class ListUserHistoryRepository
         $this->pdo = Database::connection();
     }
 
+    private function effectiveStatusExpression(string $alias = 's'): string
+    {
+        return "CASE
+            WHEN {$alias}.status = 'draft' THEN 'draft'
+            WHEN {$alias}.status = 'closed' THEN 'closed'
+            WHEN {$alias}.closes_at IS NOT NULL AND {$alias}.closes_at <= NOW() THEN 'closed'
+            WHEN {$alias}.opens_at IS NOT NULL AND {$alias}.opens_at > NOW() THEN 'upcoming'
+            ELSE 'open'
+        END";
+    }
+
     public function countHistory(
         int $userId,
         string $search,
@@ -48,6 +59,7 @@ final class ListUserHistoryRepository
         $params = [$userId];
         $where = $this->filterCondition($search, $position, $status, $params);
         $orderDirection = $sort === 'oldest' ? 'ASC' : 'DESC';
+        $effectiveStatus = $this->effectiveStatusExpression();
 
         $stmt = $this->pdo->prepare("
             SELECT
@@ -62,7 +74,7 @@ final class ListUserHistoryRepository
                 s.description,
                 s.estimated_time,
                 COALESCE(s.thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path,
-                s.status AS survey_status,
+                {$effectiveStatus} AS survey_status,
                 s.opens_at,
                 s.closes_at,
                 COALESCE((

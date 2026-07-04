@@ -16,6 +16,17 @@ final class ListSurveyRepository
         $this->pdo = Database::connection();
     }
 
+    private function effectiveStatusExpression(string $alias = 's'): string
+    {
+        return "CASE
+            WHEN {$alias}.status = 'draft' THEN 'draft'
+            WHEN {$alias}.status = 'closed' THEN 'closed'
+            WHEN {$alias}.closes_at IS NOT NULL AND {$alias}.closes_at <= NOW() THEN 'closed'
+            WHEN {$alias}.opens_at IS NOT NULL AND {$alias}.opens_at > NOW() THEN 'upcoming'
+            ELSE 'open'
+        END";
+    }
+
     public function countSurveys(
         string $search,
         ?string $status,
@@ -70,6 +81,7 @@ final class ListSurveyRepository
         $responseJoin = $userId !== null
             ? "LEFT JOIN responses ur ON ur.survey_id = s.id AND ur.user_id = ?"
             : "";
+        $effectiveStatus = $this->effectiveStatusExpression();
 
         $stmt = $this->pdo->prepare("
             SELECT
@@ -78,7 +90,7 @@ final class ListSurveyRepository
                 s.description,
                 s.estimated_time,
                 COALESCE(s.thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path,
-                s.status,
+                {$effectiveStatus} AS status,
                 s.opens_at,
                 s.closes_at,
                 COALESCE((
@@ -120,6 +132,7 @@ final class ListSurveyRepository
         ?string $accountPosition,
         array &$params,
     ): string {
+        $effectiveStatus = $this->effectiveStatusExpression();
         $accessPositions = ["'public'"];
 
         if ($accountPosition !== null) {
@@ -141,7 +154,7 @@ final class ListSurveyRepository
                     AND sr_access.position IN (" . implode(', ', $accessPositions) . ")
                 )
             )",
-            "s.status IN ('open', 'upcoming')",
+            "({$effectiveStatus}) IN ('open', 'upcoming')",
         ];
 
         if ($search !== '') {
@@ -152,7 +165,7 @@ final class ListSurveyRepository
         }
 
         if ($status !== null) {
-            $conditions[] = 's.status = ?';
+            $conditions[] = "({$effectiveStatus}) = ?";
             $params[] = $status;
         }
 

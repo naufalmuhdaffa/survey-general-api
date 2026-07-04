@@ -16,14 +16,27 @@ final class DetailSurveyRepository
         $this->pdo = Database::connection();
     }
 
+    private function effectiveStatusExpression(string $alias = 's'): string
+    {
+        return "CASE
+            WHEN {$alias}.status = 'draft' THEN 'draft'
+            WHEN {$alias}.status = 'closed' THEN 'closed'
+            WHEN {$alias}.closes_at IS NOT NULL AND {$alias}.closes_at <= NOW() THEN 'closed'
+            WHEN {$alias}.opens_at IS NOT NULL AND {$alias}.opens_at > NOW() THEN 'upcoming'
+            ELSE 'open'
+        END";
+    }
+
     public function getSurveyById(int $id): array|false
     {
+        $effectiveStatus = $this->effectiveStatusExpression();
+
         $stmt = $this->pdo->prepare("
-            SELECT id, title, description, instructions, estimated_time,
-            COALESCE(thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path, 
-            status, opens_at, closes_at
-            FROM surveys
-            WHERE id = ?
+            SELECT s.id, s.title, s.description, s.instructions, s.estimated_time,
+            COALESCE(s.thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path,
+            {$effectiveStatus} AS status, s.opens_at, s.closes_at
+            FROM surveys s
+            WHERE s.id = ?
         ");
         $stmt->execute([$id]);
         return $stmt->fetch();
@@ -140,11 +153,13 @@ final class DetailSurveyRepository
 
     public function canAccessSurvey(int $surveyId, ?string $position): bool
     {
+        $effectiveStatus = $this->effectiveStatusExpression();
+
         $stmt = $this->pdo->prepare("
         SELECT COUNT(*)
         FROM surveys s
         WHERE s.id = ?
-        AND s.status IN ('open', 'upcoming')
+        AND ({$effectiveStatus}) IN ('open', 'upcoming')
         AND (
             NOT EXISTS (
                 SELECT 1

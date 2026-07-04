@@ -16,13 +16,26 @@ final class FormSurveyRepository
         $this->pdo = Database::connection();
     }
 
+    private function effectiveStatusExpression(string $alias = 's'): string
+    {
+        return "CASE
+            WHEN {$alias}.status = 'draft' THEN 'draft'
+            WHEN {$alias}.status = 'closed' THEN 'closed'
+            WHEN {$alias}.closes_at IS NOT NULL AND {$alias}.closes_at <= NOW() THEN 'closed'
+            WHEN {$alias}.opens_at IS NOT NULL AND {$alias}.opens_at > NOW() THEN 'upcoming'
+            ELSE 'open'
+        END";
+    }
+
     public function canAccessSurvey(int $surveyId, ?string $position): bool
     {
+        $effectiveStatus = $this->effectiveStatusExpression();
+
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*)
             FROM surveys s
             WHERE s.id = ?
-            AND s.status = 'open'
+            AND ({$effectiveStatus}) = 'open'
             AND (
                 NOT EXISTS (
                     SELECT 1
