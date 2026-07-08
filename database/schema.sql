@@ -1,4 +1,3 @@
--- Active: 1768106846815@@127.0.0.1@3306@survey_db
 CREATE DATABASE IF NOT EXISTS survey_db;
 
 USE survey_db;
