@@ -7,6 +7,8 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 Dotenv\Dotenv::createImmutable(dirname(__DIR__))->load();
 
 $pdo = App\Database::connection();
+$shouldResetSurveys = \in_array('--reset-surveys', $argv, true);
+
 $creator = $pdo->query("
     SELECT u.id
     FROM users u
@@ -20,8 +22,45 @@ if (!$creator) {
     exit(0);
 }
 
+$users = $pdo->query("
+    SELECT id, full_name, position
+    FROM users
+    ORDER BY id ASC
+")->fetchAll();
+
+if ($users === []) {
+    echo "Seed dilewati: belum ada user untuk response dummy." . PHP_EOL;
+    exit(0);
+}
+
+if ($shouldResetSurveys) {
+    $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+    foreach ([
+        'answers',
+        'responses',
+        'options',
+        'questions',
+        'survey_pages',
+        'survey_restrictions',
+        'surveys',
+    ] as $table) {
+        $pdo->exec("TRUNCATE TABLE {$table}");
+    }
+    $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+}
+
 $creatorId = (int) $creator['id'];
-$surveys = [
+$opdOptions = [
+    'Dinas Komunikasi Informatika dan Persandian Kota Yogyakarta',
+    'Dinas Pendidikan Pemuda dan Olahraga Kota Yogyakarta',
+    'Dinas Kesehatan Kota Yogyakarta',
+    'Dinas Perhubungan Kota Yogyakarta',
+    'Dinas Pekerjaan Umum Perumahan dan Kawasan Permukiman Kota Yogyakarta',
+    'Dinas Penanaman Modal dan Pelayanan Terpadu Satu Pintu Kota Yogyakarta',
+    'Badan Perencanaan Pembangunan Daerah Kota Yogyakarta',
+];
+
+$baseSurveys = [
     [
         'title' => 'Evaluasi Layanan Transportasi Publik 2026',
         'description' => 'Mengukur kepuasan warga terhadap akses, rute, dan kenyamanan transportasi publik di Kota Yogyakarta.',
@@ -29,20 +68,18 @@ $surveys = [
         'estimated_time' => 8,
         'opens_at' => '-10 days',
         'closes_at' => '+18 days',
-        'positions' => ['public', 'asn'],
-        'questions' => 6,
-        'has_response' => true,
+        'positions' => ['public'],
+        'responses' => 6,
     ],
     [
         'title' => 'Kesiapan Digitalisasi Layanan Kelurahan',
-        'description' => 'Survei internal untuk memetakan kesiapan perangkat kelurahan dalam menggunakan layanan digital baru.',
+        'description' => 'Memetakan kesiapan perangkat kelurahan dalam menggunakan layanan digital baru.',
         'status' => 'upcoming',
         'estimated_time' => 12,
         'opens_at' => '+7 days',
         'closes_at' => '+37 days',
         'positions' => ['asn', 'non_asn'],
-        'questions' => 8,
-        'has_response' => false,
+        'responses' => 0,
     ],
     [
         'title' => 'Penilaian Fasilitas Ruang Publik Ramah Anak',
@@ -52,8 +89,7 @@ $surveys = [
         'opens_at' => '-5 days',
         'closes_at' => '+25 days',
         'positions' => ['public'],
-        'questions' => 7,
-        'has_response' => true,
+        'responses' => 5,
     ],
     [
         'title' => 'Audit Internal Pelayanan Administrasi OPD',
@@ -63,8 +99,7 @@ $surveys = [
         'opens_at' => '+20 days',
         'closes_at' => '+50 days',
         'positions' => ['asn'],
-        'questions' => 5,
-        'has_response' => false,
+        'responses' => 0,
     ],
     [
         'title' => 'Kepuasan Program Bantuan UMKM',
@@ -74,8 +109,7 @@ $surveys = [
         'opens_at' => '-60 days',
         'closes_at' => '-15 days',
         'positions' => ['public'],
-        'questions' => 9,
-        'has_response' => true,
+        'responses' => 7,
     ],
     [
         'title' => 'Prioritas Perbaikan Infrastruktur Kampung',
@@ -84,9 +118,8 @@ $surveys = [
         'estimated_time' => 7,
         'opens_at' => '-2 days',
         'closes_at' => '+21 days',
-        'positions' => ['public', 'non_asn'],
-        'questions' => 6,
-        'has_response' => false,
+        'positions' => ['public'],
+        'responses' => 4,
     ],
     [
         'title' => 'Evaluasi Kanal Aduan Warga',
@@ -95,9 +128,8 @@ $surveys = [
         'estimated_time' => 6,
         'opens_at' => '+14 days',
         'closes_at' => '+44 days',
-        'positions' => ['public', 'asn', 'non_asn'],
-        'questions' => 4,
-        'has_response' => false,
+        'positions' => ['public'],
+        'responses' => 0,
     ],
 ];
 
@@ -136,43 +168,44 @@ $positionSets = [
     ['public'],
     ['asn'],
     ['non_asn'],
-    ['public', 'asn'],
-    ['public', 'non_asn'],
+    ['public'],
     ['asn', 'non_asn'],
-    ['public', 'asn', 'non_asn'],
-    [],
 ];
 
 $statuses = ['open', 'upcoming', 'closed', 'draft'];
+$surveys = $baseSurveys;
 
-for ($index = count($surveys) + 1; $index <= 100; $index++) {
-    $status = $statuses[$index % count($statuses)];
+for ($index = \count($surveys) + 1; $index <= 100; $index++) {
+    $status = $statuses[$index % \count($statuses)];
 
     if ($status === 'open') {
         $opensAt = '-' . (($index % 14) + 1) . ' days';
         $closesAt = '+' . (($index % 35) + 7) . ' days';
+        $responses = 2 + ($index % 5);
     } elseif ($status === 'upcoming') {
         $opensAt = '+' . (($index % 30) + 1) . ' days';
         $closesAt = '+' . (($index % 30) + 31) . ' days';
+        $responses = 0;
     } elseif ($status === 'closed') {
         $opensAt = '-' . (($index % 90) + 45) . ' days';
         $closesAt = '-' . (($index % 30) + 1) . ' days';
+        $responses = 1 + ($index % 6);
     } else {
         $opensAt = '+' . (($index % 45) + 10) . ' days';
         $closesAt = '+' . (($index % 45) + 40) . ' days';
+        $responses = 0;
     }
 
-    $subject = $subjects[$index % count($subjects)];
+    $subject = $subjects[$index % \count($subjects)];
     $surveys[] = [
         'title' => sprintf('Survey %03d - %s', $index, $subject),
-        'description' => $descriptionTemplates[$index % count($descriptionTemplates)],
+        'description' => $descriptionTemplates[$index % \count($descriptionTemplates)],
         'status' => $status,
         'estimated_time' => 5 + ($index % 13),
         'opens_at' => $opensAt,
         'closes_at' => $closesAt,
-        'positions' => $positionSets[$index % count($positionSets)],
-        'questions' => 4 + ($index % 8),
-        'has_response' => $status !== 'draft' && $index % 3 === 0,
+        'positions' => $positionSets[$index % \count($positionSets)],
+        'responses' => $responses,
     ];
 }
 
@@ -182,13 +215,14 @@ $insertSurvey = $pdo->prepare("
         title,
         description,
         instructions,
+        opd_pengampu,
         estimated_time,
         status,
         created_by,
         opens_at,
         closes_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 ");
 $insertRestriction = $pdo->prepare("
     INSERT IGNORE INTO survey_restrictions (survey_id, position)
@@ -196,7 +230,7 @@ $insertRestriction = $pdo->prepare("
 ");
 $insertPage = $pdo->prepare("
     INSERT IGNORE INTO survey_pages (survey_id, page, section)
-    VALUES (?, 1, 'Halaman Utama')
+    VALUES (?, ?, ?)
 ");
 $insertQuestion = $pdo->prepare("
     INSERT INTO questions (
@@ -205,55 +239,278 @@ $insertQuestion = $pdo->prepare("
         question_type,
         is_required,
         question_order,
-        page
+        page,
+        parent_option_id
     )
-    VALUES (?, ?, 'radio_button', 1, ?, 1)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+");
+$insertOption = $pdo->prepare("
+    INSERT INTO options (question_id, option_text, option_order)
+    VALUES (?, ?, ?)
 ");
 $insertResponse = $pdo->prepare("
-    INSERT IGNORE INTO responses (survey_id, user_id)
-    VALUES (?, ?)
+    INSERT INTO responses (
+        survey_id,
+        user_id,
+        status,
+        current_page,
+        submitted_at,
+        created_at,
+        updated_at
+    )
+    VALUES (?, ?, 'submitted', 2, ?, ?, ?)
+");
+$insertAnswer = $pdo->prepare("
+    INSERT INTO answers (response_id, question_id, answer_text, option_id)
+    VALUES (?, ?, ?, ?)
 ");
 
-$inserted = 0;
+$questionBlueprints = [
+    [
+        'text' => 'Seberapa puas Anda terhadap layanan ini secara keseluruhan?',
+        'type' => 'radio_button',
+        'page' => 1,
+        'options' => ['Sangat puas', 'Puas', 'Cukup puas', 'Kurang puas'],
+    ],
+    [
+        'text' => 'Aspek apa saja yang menurut Anda perlu menjadi prioritas perbaikan?',
+        'type' => 'checkbox',
+        'page' => 1,
+        'options' => ['Kecepatan layanan', 'Kejelasan informasi', 'Kemudahan akses', 'Kenyamanan fasilitas'],
+    ],
+    [
+        'text' => 'Wilayah atau unit layanan yang paling sering Anda gunakan',
+        'type' => 'dropdown',
+        'page' => 1,
+        'options' => ['Kecamatan Jetis', 'Kecamatan Gondokusuman', 'Kecamatan Umbulharjo', 'Kecamatan Kotagede'],
+    ],
+    [
+        'text' => 'Saran utama Anda untuk peningkatan layanan ini',
+        'type' => 'free_text',
+        'page' => 2,
+        'options' => [],
+    ],
+    [
+        'text' => 'Apakah Anda bersedia mengikuti survei lanjutan jika diperlukan?',
+        'type' => 'radio_button',
+        'page' => 2,
+        'options' => ['Ya, bersedia', 'Tidak saat ini'],
+    ],
+];
 
-foreach ($surveys as $survey) {
+$inserted = 0;
+$skipped = 0;
+$responseInserted = 0;
+$answerInserted = 0;
+
+foreach ($surveys as $index => $survey) {
     $findSurvey->execute([$survey['title']]);
 
     if ($findSurvey->fetch()) {
+        $skipped++;
         continue;
     }
 
-    $insertSurvey->execute([
-        $survey['title'],
-        $survey['description'],
-        'Jawab pertanyaan sesuai pengalaman dan kondisi terbaru.',
-        $survey['estimated_time'],
-        $survey['status'],
-        $creatorId,
-        date('Y-m-d H:i:s', strtotime($survey['opens_at'])),
-        date('Y-m-d H:i:s', strtotime($survey['closes_at'])),
-    ]);
+    $pdo->beginTransaction();
 
-    $surveyId = (int) $pdo->lastInsertId();
-    $insertPage->execute([$surveyId]);
-
-    foreach ($survey['positions'] as $position) {
-        $insertRestriction->execute([$surveyId, $position]);
-    }
-
-    for ($order = 1; $order <= $survey['questions']; $order++) {
-        $insertQuestion->execute([
-            $surveyId,
-            "Pertanyaan {$order} untuk {$survey['title']}",
-            $order,
+    try {
+        $insertSurvey->execute([
+            $survey['title'],
+            $survey['description'],
+            'Jawab pertanyaan sesuai pengalaman dan kondisi terbaru. Jawaban akan dipakai untuk bahan evaluasi layanan.',
+            $opdOptions[$index % \count($opdOptions)],
+            $survey['estimated_time'],
+            $survey['status'],
+            $creatorId,
+            date('Y-m-d H:i:s', strtotime($survey['opens_at'])),
+            date('Y-m-d H:i:s', strtotime($survey['closes_at'])),
         ]);
-    }
 
-    if ($survey['has_response']) {
-        $insertResponse->execute([$surveyId, $creatorId]);
-    }
+        $surveyId = (int) $pdo->lastInsertId();
+        $insertPage->execute([$surveyId, 1, 'Profil Pengalaman Responden']);
+        $insertPage->execute([$surveyId, 2, 'Evaluasi dan Saran Layanan']);
 
-    $inserted++;
+        foreach ($survey['positions'] as $position) {
+            $insertRestriction->execute([$surveyId, $position]);
+        }
+
+        $questions = [];
+
+        foreach ($questionBlueprints as $order => $blueprint) {
+            $insertQuestion->execute([
+                $surveyId,
+                $blueprint['text'],
+                $blueprint['type'],
+                1,
+                $order + 1,
+                $blueprint['page'],
+                null,
+            ]);
+
+            $questionId = (int) $pdo->lastInsertId();
+            $optionIds = [];
+
+            foreach ($blueprint['options'] as $optionOrder => $optionText) {
+                $insertOption->execute([$questionId, $optionText, $optionOrder + 1]);
+                $optionIds[] = (int) $pdo->lastInsertId();
+            }
+
+            $questions[] = [
+                'id' => $questionId,
+                'type' => $blueprint['type'],
+                'options' => $optionIds,
+            ];
+        }
+
+        $followUpParentOptionId = $questions[4]['options'][1] ?? null;
+
+        if ($followUpParentOptionId !== null) {
+            $insertQuestion->execute([
+                $surveyId,
+                'Apa alasan utama Anda belum bersedia mengikuti survei lanjutan?',
+                'free_text',
+                0,
+                6,
+                2,
+                $followUpParentOptionId,
+            ]);
+
+            $questions[] = [
+                'id' => (int) $pdo->lastInsertId(),
+                'type' => 'free_text',
+                'options' => [],
+                'parent_option_id' => $followUpParentOptionId,
+            ];
+        }
+
+        $respondents = resolveRespondents($users, $survey['positions'], (int) $survey['responses']);
+
+        foreach ($respondents as $responseIndex => $respondent) {
+            $submittedAt = date(
+                'Y-m-d H:i:s',
+                strtotime('-' . (($responseIndex + $index) % 150 + 1) . ' hours'),
+            );
+            $insertResponse->execute([
+                $surveyId,
+                (int) $respondent['id'],
+                $submittedAt,
+                $submittedAt,
+                $submittedAt,
+            ]);
+
+            $responseId = (int) $pdo->lastInsertId();
+            $selectedFinalOption = null;
+
+            foreach ($questions as $questionIndex => $question) {
+                if (isset($question['parent_option_id']) && $selectedFinalOption !== $question['parent_option_id']) {
+                    continue;
+                }
+
+                if ($question['type'] === 'free_text') {
+                    $answer = generateTextAnswer($survey['title'], $responseIndex, isset($question['parent_option_id']));
+                    $insertAnswer->execute([$responseId, $question['id'], $answer, null]);
+                    $answerInserted++;
+                    continue;
+                }
+
+                if ($question['type'] === 'checkbox') {
+                    $selectedOptions = selectManyOptions($question['options'], $responseIndex + $questionIndex);
+
+                    foreach ($selectedOptions as $optionId) {
+                        $insertAnswer->execute([$responseId, $question['id'], null, $optionId]);
+                        $answerInserted++;
+                    }
+
+                    continue;
+                }
+
+                $optionId = selectOneOption($question['options'], $responseIndex + $questionIndex);
+
+                if ($questionIndex === 4) {
+                    $selectedFinalOption = $optionId;
+                }
+
+                $insertAnswer->execute([$responseId, $question['id'], null, $optionId]);
+                $answerInserted++;
+            }
+
+            $responseInserted++;
+        }
+
+        $pdo->commit();
+        $inserted++;
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
 }
 
-echo "Seed kelola survey selesai. Data baru: {$inserted}." . PHP_EOL;
+echo "Seed survey selesai. Data baru: {$inserted}. Dilewati: {$skipped}. Response: {$responseInserted}. Answer: {$answerInserted}." . PHP_EOL;
+
+/**
+ * @param array<int, array<string, mixed>> $users
+ * @param array<int, string> $positions
+ * @return array<int, array<string, mixed>>
+ */
+function resolveRespondents(array $users, array $positions, int $limit): array
+{
+    if ($limit <= 0) {
+        return [];
+    }
+
+    $allowedPositions = $positions === [] || \in_array('public', $positions, true)
+        ? ['asn', 'non_asn', 'public']
+        : $positions;
+    $eligibleUsers = array_values(array_filter(
+        $users,
+        static fn (array $user): bool => \in_array((string) $user['position'], $allowedPositions, true),
+    ));
+
+    if ($eligibleUsers === []) {
+        $eligibleUsers = $users;
+    }
+
+    $respondents = [];
+
+    for ($index = 0; $index < min($limit, \count($eligibleUsers)); $index++) {
+        $respondents[] = $eligibleUsers[$index % \count($eligibleUsers)];
+    }
+
+    return $respondents;
+}
+
+/**
+ * @param array<int, int> $optionIds
+ */
+function selectOneOption(array $optionIds, int $seed): int
+{
+    return $optionIds[$seed % \count($optionIds)];
+}
+
+/**
+ * @param array<int, int> $optionIds
+ * @return array<int, int>
+ */
+function selectManyOptions(array $optionIds, int $seed): array
+{
+    $first = $optionIds[$seed % \count($optionIds)];
+    $second = $optionIds[($seed + 1) % \count($optionIds)];
+
+    return array_values(array_unique([$first, $second]));
+}
+
+function generateTextAnswer(string $surveyTitle, int $responseIndex, bool $isFollowUp): string
+{
+    if ($isFollowUp) {
+        return 'Belum dapat mengikuti survei lanjutan karena jadwal responden belum sesuai.';
+    }
+
+    $answers = [
+        'Informasi layanan perlu dibuat lebih jelas dan mudah ditemukan.',
+        'Waktu respons sudah baik, namun kanal digital masih bisa dipermudah.',
+        'Petugas cukup membantu dan alur layanan sudah lebih tertata.',
+        'Fasilitas pendukung perlu diperbarui agar lebih nyaman digunakan.',
+    ];
+
+    return $answers[$responseIndex % \count($answers)] . ' (' . $surveyTitle . ')';
+}

@@ -69,15 +69,18 @@ final class AnalysisSurveyController
 
     private function error(RuntimeException $e, string $fallback): never
     {
-        $statusCode = $e->getCode();
+        $code = $e->getCode();
+        $statusCode = \is_int($code) && $code >= 400 && $code <= 599
+            ? $code
+            : 500;
 
-        if ($statusCode < 400 || $statusCode > 599) {
-            $statusCode = 500;
-        }
+        $message = $statusCode === 500
+            ? $fallback
+            : ($e->getMessage() ?: $fallback);
 
         Response::json([
             'status' => 'error',
-            'message' => $e->getMessage() ?: $fallback,
+            'message' => $message,
         ], $statusCode);
     }
 }

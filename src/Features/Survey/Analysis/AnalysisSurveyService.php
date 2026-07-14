@@ -29,18 +29,21 @@ final class AnalysisSurveyService
     {
         $search = $this->normalizeSearch($query['search'] ?? '');
         $status = $this->normalizeOption($query['status'] ?? '', self::VALID_STATUSES);
+        $year = $this->normalizeYear($query['year'] ?? date('Y'));
         $perPage = $this->normalizePositiveInteger($query['per_page'] ?? self::DEFAULT_PER_PAGE, self::DEFAULT_PER_PAGE, self::MAX_PER_PAGE);
-        $total = $this->repository->countSurveys($search, $status);
+        $total = $this->repository->countSurveys($search, $status, $year);
         $totalPages = max(1, (int) ceil($total / $perPage));
         $page = min($this->normalizePositiveInteger($query['page'] ?? 1, 1), $totalPages);
         $offset = ($page - 1) * $perPage;
 
         return [
-            'summary' => $this->formatSummary($this->repository->getSummary()),
-            'response_volume' => $this->buildResponseVolume(),
+            'summary' => $this->formatSummary($this->repository->getSummary($year)),
+            'available_years' => $this->formatAvailableYears($this->repository->getAvailableYears(), $year),
+            'selected_year' => $year,
+            'response_volume' => $this->buildResponseVolume($year),
             'items' => array_map(
                 fn (array $survey): array => $this->formatSurveyRow($survey),
-                $this->repository->getSurveys($search, $status, $perPage, $offset),
+                $this->repository->getSurveys($search, $status, $year, $perPage, $offset),
             ),
             'meta' => [
                 'page' => $page,
@@ -163,30 +166,45 @@ final class AnalysisSurveyService
         ];
     }
 
-    private function buildResponseVolume(): array
+    private function buildResponseVolume(int $year): array
     {
-        $start = new DateTimeImmutable('first day of -5 months 00:00:00');
-        $rawVolume = $this->repository->getResponseVolume($start->format('Y-m-d H:i:s'));
-        $volumeByPeriod = [];
+        $rawVolume = $this->repository->getResponseVolume($year);
+        $volumeByMonth = [];
 
         foreach ($rawVolume as $item) {
-            $volumeByPeriod[(string) $item['period']] = (int) $item['total'];
+            $volumeByMonth[(int) $item['month']] = (int) $item['total'];
         }
 
         $months = [];
 
-        for ($index = 0; $index < 6; $index++) {
-            $date = $start->modify("+{$index} months");
-            $period = $date->format('Y-m');
+        for ($month = 1; $month <= 12; $month++) {
+            $date = new DateTimeImmutable(sprintf('%d-%02d-01 00:00:00', $year, $month));
 
             $months[] = [
-                'period' => $period,
-                'label' => $this->monthLabel((int) $date->format('n')),
-                'total' => $volumeByPeriod[$period] ?? 0,
+                'period' => $date->format('Y-m'),
+                'label' => $this->monthLabel($month),
+                'total' => $volumeByMonth[$month] ?? 0,
             ];
         }
 
         return $months;
+    }
+
+    private function formatAvailableYears(array $years, int $selectedYear): array
+    {
+        $availableYears = array_map(
+            static fn (array $year): int => (int) ($year['year_value'] ?? 0),
+            $years,
+        );
+        $availableYears = array_values(array_filter($availableYears, static fn (int $year): bool => $year > 0));
+
+        if (!\in_array($selectedYear, $availableYears, true)) {
+            $availableYears[] = $selectedYear;
+        }
+
+        rsort($availableYears);
+
+        return array_values(array_unique($availableYears));
     }
 
     private function formatSummary(array $summary): array
@@ -238,6 +256,7 @@ final class AnalysisSurveyService
             'user_id' => (int) $respondent['user_id'],
             'full_name' => $respondent['full_name'],
             'nik' => $respondent['nik'],
+            'profile_photo_path' => $respondent['profile_photo_path'],
             'status' => $respondent['status'],
             'submitted_at' => $respondent['submitted_at'],
             'answers' => $answers,
@@ -338,6 +357,26 @@ final class AnalysisSurveyService
         $value = strtolower(trim($value));
 
         return \in_array($value, $allowedValues, true) ? $value : null;
+    }
+
+    private function normalizeYear(mixed $value): int
+    {
+        if (\is_string($value)) {
+            $value = trim($value);
+        }
+
+        if (!\is_int($value) && !(\is_string($value) && ctype_digit($value))) {
+            return (int) date('Y');
+        }
+
+        $year = (int) $value;
+        $currentYear = (int) date('Y');
+
+        if ($year < 2000 || $year > $currentYear + 5) {
+            return $currentYear;
+        }
+
+        return $year;
     }
 
     private function normalizePositiveInteger(mixed $value, int $default, ?int $max = null): int
