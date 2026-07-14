@@ -217,8 +217,8 @@ final class ProfileService
             throw new RuntimeException('Kata sandi baru harus diisi', 422);
         }
 
-        if (mb_strlen($password) < 8) {
-            throw new RuntimeException('Kata sandi baru minimal 8 karakter', 422);
+        if (mb_strlen($password) < 6) {
+            throw new RuntimeException('Kata sandi baru minimal 6 karakter', 422);
         }
 
         if (mb_strlen($password) > 255) {
