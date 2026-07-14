@@ -475,6 +475,274 @@ foreach ($surveys as $index => $survey) {
     }
 }
 
+$maxBranchSurveyTitle = 'Survey Percabangan Maksimal Layanan Terpadu 2026';
+$findSurvey->execute([$maxBranchSurveyTitle]);
+
+if ($findSurvey->fetch()) {
+    $skipped++;
+} else {
+    $budi = $pdo->query("
+        SELECT id
+        FROM users
+        WHERE username = 'budi' OR full_name = 'Budi Santoso'
+        ORDER BY username = 'budi' DESC, id ASC
+        LIMIT 1
+    ")->fetch();
+
+    if (!$budi) {
+        echo "Seed survey percabangan maksimal dilewati: akun Budi tidak ditemukan." . PHP_EOL;
+    } else {
+        $pdo->beginTransaction();
+
+        try {
+            $opensAt = '2026-07-01 09:00:00';
+            $closesAt = '2026-12-31 17:00:00';
+            $createdAt = '2026-06-24 09:00:00';
+            $updatedAt = '2026-07-14 10:00:00';
+
+            $insertSurvey->execute([
+                $maxBranchSurveyTitle,
+                'Seed khusus untuk menguji tampilan dan analisis pertanyaan bercabang hingga tiga tingkat tanpa tipe free text.',
+                'Pilih jawaban sesuai skenario layanan terakhir. Beberapa jawaban akan membuka pertanyaan lanjutan.',
+                'Dinas Komunikasi Informatika dan Persandian Kota Yogyakarta',
+                11,
+                'open',
+                (int) $budi['id'],
+                $opensAt,
+                $closesAt,
+                $createdAt,
+                $updatedAt,
+            ]);
+
+            $surveyId = (int) $pdo->lastInsertId();
+            $insertPage->execute([$surveyId, 1, 'Alur Pengalaman Layanan']);
+            $insertPage->execute([$surveyId, 2, 'Kualitas Tindak Lanjut']);
+            $insertRestriction->execute([$surveyId, 'public']);
+
+            $createChoiceQuestion = function (
+                string $text,
+                string $type,
+                int $page,
+                int $order,
+                ?int $parentOptionId,
+                array $options,
+                bool $isRequired = true
+            ) use ($insertQuestion, $insertOption, $pdo, $surveyId): array {
+                $insertQuestion->execute([
+                    $surveyId,
+                    $text,
+                    $type,
+                    $isRequired ? 1 : 0,
+                    $order,
+                    $page,
+                    $parentOptionId,
+                ]);
+
+                $questionId = (int) $pdo->lastInsertId();
+                $optionIds = [];
+
+                foreach ($options as $optionOrder => $optionText) {
+                    $insertOption->execute([$questionId, $optionText, $optionOrder + 1]);
+                    $optionIds[$optionText] = (int) $pdo->lastInsertId();
+                }
+
+                return [
+                    'id' => $questionId,
+                    'options' => $optionIds,
+                    'type' => $type,
+                ];
+            };
+
+            $q1 = $createChoiceQuestion(
+                'Kanal layanan mana yang terakhir Anda gunakan?',
+                'radio_button',
+                1,
+                1,
+                null,
+                [
+                    'Mall Pelayanan Publik',
+                    'Website layanan',
+                    'Aplikasi Jogja Smart Service',
+                    'Kelurahan atau kecamatan',
+                ],
+            );
+            $q2 = $createChoiceQuestion(
+                'Jika melalui Mall Pelayanan Publik, antrean seperti apa yang Anda alami?',
+                'dropdown',
+                1,
+                2,
+                $q1['options']['Mall Pelayanan Publik'],
+                ['Sangat cepat', 'Menunggu cukup lama', 'Tidak memakai antrean'],
+            );
+            $q3 = $createChoiceQuestion(
+                'Bagian antrean mana yang paling perlu dibenahi?',
+                'checkbox',
+                1,
+                3,
+                $q2['options']['Menunggu cukup lama'],
+                [
+                    'Nomor antrean elektronik',
+                    'Informasi estimasi waktu',
+                    'Jalur prioritas',
+                    'Ruang tunggu',
+                ],
+            );
+            $q4 = $createChoiceQuestion(
+                'Seberapa jelas petunjuk layanan yang tersedia?',
+                'radio_button',
+                1,
+                4,
+                null,
+                ['Sangat jelas', 'Cukup jelas', 'Kurang jelas', 'Tidak melihat petunjuk'],
+            );
+            $q5 = $createChoiceQuestion(
+                'Apakah hasil layanan selesai pada kunjungan pertama?',
+                'radio_button',
+                2,
+                1,
+                null,
+                ['Selesai', 'Perlu kunjungan ulang', 'Belum selesai'],
+            );
+            $q6 = $createChoiceQuestion(
+                'Apa alasan utama perlu kunjungan ulang?',
+                'radio_button',
+                2,
+                2,
+                $q5['options']['Perlu kunjungan ulang'],
+                ['Berkas kurang lengkap', 'Sistem sedang gangguan', 'Perlu verifikasi petugas'],
+            );
+            $q7 = $createChoiceQuestion(
+                'Jenis berkas apa yang perlu dilengkapi?',
+                'dropdown',
+                2,
+                3,
+                $q6['options']['Berkas kurang lengkap'],
+                ['Identitas pemohon', 'Surat pengantar', 'Dokumen pendukung teknis'],
+            );
+            $q8 = $createChoiceQuestion(
+                'Prioritas tindak lanjut apa yang paling penting menurut Anda?',
+                'checkbox',
+                2,
+                4,
+                null,
+                [
+                    'Notifikasi status permohonan',
+                    'Integrasi data antar OPD',
+                    'Pendampingan petugas',
+                    'Panduan berkas digital',
+                ],
+            );
+
+            $answerOption = function (int $responseId, array $question, string $optionText) use ($insertAnswer, &$answerInserted): int {
+                $optionId = (int) $question['options'][$optionText];
+                $insertAnswer->execute([$responseId, $question['id'], null, $optionId]);
+                $answerInserted++;
+
+                return $optionId;
+            };
+            $answerMany = function (int $responseId, array $question, array $optionTexts) use ($answerOption): void {
+                foreach ($optionTexts as $optionText) {
+                    $answerOption($responseId, $question, $optionText);
+                }
+            };
+
+            $branchRespondents = array_values(array_filter(
+                $users,
+                static fn (array $user): bool => (int) $user['id'] !== (int) $budi['id'],
+            ));
+            $branchRespondents = array_slice($branchRespondents, 0, 5);
+            $scenarios = [
+                [
+                    'q1' => 'Mall Pelayanan Publik',
+                    'q2' => 'Menunggu cukup lama',
+                    'q3' => ['Nomor antrean elektronik', 'Informasi estimasi waktu'],
+                    'q4' => 'Cukup jelas',
+                    'q5' => 'Perlu kunjungan ulang',
+                    'q6' => 'Berkas kurang lengkap',
+                    'q7' => 'Identitas pemohon',
+                    'q8' => ['Notifikasi status permohonan', 'Panduan berkas digital'],
+                ],
+                [
+                    'q1' => 'Website layanan',
+                    'q4' => 'Sangat jelas',
+                    'q5' => 'Selesai',
+                    'q8' => ['Integrasi data antar OPD', 'Panduan berkas digital'],
+                ],
+                [
+                    'q1' => 'Mall Pelayanan Publik',
+                    'q2' => 'Sangat cepat',
+                    'q4' => 'Sangat jelas',
+                    'q5' => 'Perlu kunjungan ulang',
+                    'q6' => 'Sistem sedang gangguan',
+                    'q8' => ['Notifikasi status permohonan', 'Pendampingan petugas'],
+                ],
+                [
+                    'q1' => 'Aplikasi Jogja Smart Service',
+                    'q4' => 'Kurang jelas',
+                    'q5' => 'Belum selesai',
+                    'q8' => ['Pendampingan petugas', 'Panduan berkas digital'],
+                ],
+                [
+                    'q1' => 'Mall Pelayanan Publik',
+                    'q2' => 'Menunggu cukup lama',
+                    'q3' => ['Jalur prioritas', 'Ruang tunggu'],
+                    'q4' => 'Tidak melihat petunjuk',
+                    'q5' => 'Perlu kunjungan ulang',
+                    'q6' => 'Berkas kurang lengkap',
+                    'q7' => 'Dokumen pendukung teknis',
+                    'q8' => ['Notifikasi status permohonan', 'Integrasi data antar OPD'],
+                ],
+            ];
+
+            foreach ($branchRespondents as $responseIndex => $respondent) {
+                $scenario = $scenarios[$responseIndex % \count($scenarios)];
+                $submittedAt = date('Y-m-d H:i:s', strtotime(sprintf('2026-07-%02d 10:30:00', 3 + $responseIndex)));
+
+                $insertResponse->execute([
+                    $surveyId,
+                    (int) $respondent['id'],
+                    $submittedAt,
+                    $submittedAt,
+                    $submittedAt,
+                ]);
+
+                $responseId = (int) $pdo->lastInsertId();
+                $answerOption($responseId, $q1, $scenario['q1']);
+
+                if ($scenario['q1'] === 'Mall Pelayanan Publik') {
+                    $answerOption($responseId, $q2, $scenario['q2']);
+
+                    if ($scenario['q2'] === 'Menunggu cukup lama') {
+                        $answerMany($responseId, $q3, $scenario['q3']);
+                    }
+                }
+
+                $answerOption($responseId, $q4, $scenario['q4']);
+                $answerOption($responseId, $q5, $scenario['q5']);
+
+                if ($scenario['q5'] === 'Perlu kunjungan ulang') {
+                    $answerOption($responseId, $q6, $scenario['q6']);
+
+                    if ($scenario['q6'] === 'Berkas kurang lengkap') {
+                        $answerOption($responseId, $q7, $scenario['q7']);
+                    }
+                }
+
+                $answerMany($responseId, $q8, $scenario['q8']);
+                $responseInserted++;
+            }
+
+            $pdo->commit();
+            $inserted++;
+
+            echo "Seed khusus ditambahkan: {$maxBranchSurveyTitle} (2026), dibuat oleh Budi." . PHP_EOL;
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+}
+
 echo "Seed survey selesai. Data baru: {$inserted}. Dilewati: {$skipped}. Response: {$responseInserted}. Answer: {$answerInserted}." . PHP_EOL;
 
 function makeSubmittedAt(int $opensAtTimestamp, int $closesAtTimestamp, int $responseIndex, int $surveyIndex): string
