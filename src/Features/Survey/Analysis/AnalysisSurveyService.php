@@ -121,49 +121,239 @@ final class AnalysisSurveyService
         }
 
         $responses = $this->repository->getAllSubmittedResponses($surveyId);
-        $pages = $this->repository->getPagesWithQuestions($surveyId);
-        $questions = [];
-
-        foreach ($pages as $page) {
-            foreach ($page['questions'] ?? [] as $question) {
-                $questions[(int) $question['id']] = $question['question_text'];
-            }
-        }
+        $totalRespondents = \count($responses);
+        $pages = $this->formatPages(
+            $this->repository->getPagesWithQuestions($surveyId),
+            $this->repository->getOptionAnswerCounts($surveyId),
+            $this->repository->getFreeTextAnswers($surveyId),
+            $totalRespondents,
+        );
+        $questions = $this->flattenExportQuestions($pages);
 
         $answers = $this->groupAnswersByResponse(
             $this->repository->getAnswersByResponseIds(array_column($responses, 'response_id')),
         );
 
-        $rows = [];
-        $rows[] = array_merge(['Nama Responden', 'NIK', 'Tanggal Submit'], array_values($questions));
-
-        foreach ($responses as $response) {
-            $answerByQuestion = [];
-
-            foreach ($answers[(int) $response['response_id']] ?? [] as $answer) {
-                $questionId = (int) $answer['question_id'];
-                $answerByQuestion[$questionId][] = $answer['value'];
-            }
-
-            $row = [
-                $response['full_name'],
-                $response['nik'],
-                $response['submitted_at'],
-            ];
-
-            foreach (array_keys($questions) as $questionId) {
-                $row[] = implode('; ', $answerByQuestion[$questionId] ?? []);
-            }
-
-            $rows[] = $row;
-        }
-
         $filename = $this->slugify((string) $survey['title']) . '-responses.xls';
 
         return [
             'filename' => $filename,
-            'content' => $this->toTabSeparatedValues($rows),
+            'content' => $this->toExcelHtml($survey, $pages, $questions, $responses, $answers, $totalRespondents),
         ];
+    }
+
+    private function toExcelHtml(
+        array $survey,
+        array $pages,
+        array $questions,
+        array $responses,
+        array $answers,
+        int $totalRespondents
+    ): string {
+        $html = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+        $html .= '<style>
+            body { font-family: Arial, sans-serif; color: #111827; }
+            h1 { color: #800000; font-size: 22px; margin: 0 0 6px; }
+            h2 { color: #800000; font-size: 16px; margin: 24px 0 8px; }
+            p { color: #4b5563; font-size: 12px; margin: 0 0 16px; }
+            table { border-collapse: collapse; margin-bottom: 18px; width: 100%; }
+            th { background: #800000; color: #ffffff; font-weight: 700; }
+            th, td { border: 1px solid #d8b4ae; font-size: 12px; padding: 8px; vertical-align: top; }
+            td { background: #ffffff; }
+            .section-row td { background: #fff3f2; color: #570000; font-weight: 700; }
+            .summary-label { background: #fff3f2; color: #570000; font-weight: 700; width: 220px; }
+            .text { mso-number-format: "\@"; }
+            .muted { color: #6b7280; }
+        </style></head><body>';
+        $html .= '<h1>' . $this->escapeCell($survey['title'] ?? 'Survey') . '</h1>';
+        $html .= '<p>Export data analisis survey dari Survey Pemkot Jogja.</p>';
+
+        $html .= '<h2>Ringkasan Survey</h2><table>';
+        $summaryRows = [
+            ['Judul Survey', $survey['title'] ?? '-'],
+            ['Deskripsi', $survey['description'] ?? '-'],
+            ['OPD Pengampu', $survey['opd_pengampu'] ?? '-'],
+            ['Status', $survey['status'] ?? '-'],
+            ['Audiens', $this->formatAudience($this->normalizePositions($survey['positions'] ?? ''))],
+            ['Tanggal Mulai', $survey['opens_at'] ?? '-'],
+            ['Tanggal Selesai', $survey['closes_at'] ?? '-'],
+            ['Total Responden', $totalRespondents],
+        ];
+
+        foreach ($summaryRows as [$label, $value]) {
+            $html .= '<tr><td class="summary-label text">' . $this->escapeCell($label) . '</td>';
+            $html .= '<td class="text">' . $this->escapeCell($value) . '</td></tr>';
+        }
+
+        $html .= '</table>';
+
+        $html .= '<h2>Jawaban Per Responden</h2><table><thead><tr>';
+        foreach (['No', 'Nama Responden', 'NIK', 'Tanggal Submit'] as $header) {
+            $html .= '<th class="text">' . $this->escapeCell($header) . '</th>';
+        }
+
+        foreach ($questions as $question) {
+            $html .= '<th class="text">' . $this->escapeCell($this->formatExportQuestionLabel($question)) . '</th>';
+        }
+
+        $html .= '</tr></thead><tbody>';
+
+        if ($responses === []) {
+            $html .= '<tr><td class="text muted" colspan="' . (4 + \count($questions)) . '">Belum ada responden submitted.</td></tr>';
+        }
+
+        foreach ($responses as $index => $response) {
+            $answerByQuestion = [];
+
+            foreach ($answers[(int) $response['response_id']] ?? [] as $answer) {
+                $answerByQuestion[(int) $answer['question_id']][] = $answer['value'];
+            }
+
+            $html .= '<tr>';
+            $html .= '<td class="text">' . $this->escapeCell($index + 1) . '</td>';
+            $html .= '<td class="text">' . $this->escapeCell($response['full_name'] ?? '-') . '</td>';
+            $html .= '<td class="text">' . $this->escapeCell($response['nik'] ?? '-') . '</td>';
+            $html .= '<td class="text">' . $this->escapeCell($response['submitted_at'] ?? '-') . '</td>';
+
+            foreach ($questions as $question) {
+                $html .= '<td class="text">' . $this->escapeCell(implode('; ', $answerByQuestion[(int) $question['id']] ?? [])) . '</td>';
+            }
+
+            $html .= '</tr>';
+        }
+
+        $html .= '</tbody></table>';
+        $html .= '<h2>Rekap Opsi Jawaban</h2><table>';
+        $html .= '<thead><tr><th class="text">Halaman</th><th class="text">Section</th><th class="text">Pertanyaan</th><th class="text">Opsi</th><th class="text">Jumlah Responden</th><th class="text">Persentase</th></tr></thead><tbody>';
+        $hasOptionRecap = false;
+
+        foreach ($questions as $question) {
+            if (($question['question_type'] ?? '') === 'free_text') {
+                continue;
+            }
+
+            foreach ($question['options'] ?? [] as $option) {
+                $hasOptionRecap = true;
+                $html .= '<tr>';
+                $html .= '<td class="text">' . $this->escapeCell('Halaman ' . $question['page']) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($question['section']) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($this->formatExportQuestionLabel($question, false)) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($option['option_text'] ?? '-') . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($option['count'] ?? 0) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell(($option['percentage'] ?? 0) . '%') . '</td>';
+                $html .= '</tr>';
+            }
+        }
+
+        if (!$hasOptionRecap) {
+            $html .= '<tr><td class="text muted" colspan="6">Belum ada pertanyaan pilihan.</td></tr>';
+        }
+
+        $html .= '</tbody></table>';
+        $html .= '<h2>Jawaban Teks</h2><table>';
+        $html .= '<thead><tr><th class="text">Halaman</th><th class="text">Section</th><th class="text">Pertanyaan</th><th class="text">Responden</th><th class="text">Tanggal Submit</th><th class="text">Jawaban</th></tr></thead><tbody>';
+        $hasTextAnswer = false;
+
+        foreach ($questions as $question) {
+            if (($question['question_type'] ?? '') !== 'free_text') {
+                continue;
+            }
+
+            foreach ($question['text_answers'] ?? [] as $answer) {
+                $hasTextAnswer = true;
+                $html .= '<tr>';
+                $html .= '<td class="text">' . $this->escapeCell('Halaman ' . $question['page']) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($question['section']) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($this->formatExportQuestionLabel($question, false)) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($answer['respondent_name'] ?? '-') . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($answer['submitted_at'] ?? '-') . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($answer['answer_text'] ?? '-') . '</td>';
+                $html .= '</tr>';
+            }
+        }
+
+        if (!$hasTextAnswer) {
+            $html .= '<tr><td class="text muted" colspan="6">Belum ada jawaban teks.</td></tr>';
+        }
+
+        $html .= '</tbody></table>';
+
+        foreach ($pages as $page) {
+            $section = $page['section'] ?: 'Tanpa nama section';
+            $html .= '<h2>Struktur Halaman ' . $this->escapeCell($page['page']) . ' - ' . $this->escapeCell($section) . '</h2>';
+            $html .= '<table><thead><tr><th class="text">Urutan</th><th class="text">Tipe</th><th class="text">Wajib</th><th class="text">Pertanyaan</th><th class="text">Cabang Dari Opsi</th></tr></thead><tbody>';
+
+            foreach ($this->flattenExportQuestions([$page]) as $index => $question) {
+                $html .= '<tr>';
+                $html .= '<td class="text">' . $this->escapeCell($index + 1) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($question['question_type']) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($question['is_required'] ? 'Ya' : 'Tidak') . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($question['question_text']) . '</td>';
+                $html .= '<td class="text">' . $this->escapeCell($question['parent_option_label'] ?? '-') . '</td>';
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody></table>';
+        }
+
+        $html .= '</body></html>';
+
+        return $html;
+    }
+
+    private function flattenExportQuestions(array $pages): array
+    {
+        $optionLabels = [];
+
+        foreach ($pages as $page) {
+            foreach ($page['questions'] ?? [] as $question) {
+                foreach ($question['options'] ?? [] as $option) {
+                    if (isset($option['id'])) {
+                        $optionLabels[(int) $option['id']] = (string) ($option['option_text'] ?? '-');
+                    }
+                }
+            }
+        }
+
+        $questions = [];
+
+        foreach ($pages as $page) {
+            foreach ($page['questions'] ?? [] as $question) {
+                $parentOptionId = $question['parent_option_id'] !== null
+                    ? (int) $question['parent_option_id']
+                    : null;
+
+                $questions[] = [
+                    'id' => (int) $question['id'],
+                    'page' => (int) ($page['page'] ?? 1),
+                    'section' => $page['section'] ?: 'Tanpa nama section',
+                    'question_text' => $question['question_text'] ?? '-',
+                    'question_type' => $question['question_type'] ?? '-',
+                    'is_required' => (bool) ($question['is_required'] ?? false),
+                    'parent_option_id' => $parentOptionId,
+                    'parent_option_label' => $parentOptionId !== null
+                        ? ($optionLabels[$parentOptionId] ?? 'Opsi #' . $parentOptionId)
+                        : null,
+                    'options' => $question['options'] ?? [],
+                    'text_answers' => $question['text_answers'] ?? [],
+                ];
+            }
+        }
+
+        return $questions;
+    }
+
+    private function formatExportQuestionLabel(array $question, bool $includeSection = true): string
+    {
+        $label = $includeSection
+            ? sprintf('Halaman %s - %s - %s', $question['page'], $question['section'], $question['question_text'])
+            : (string) $question['question_text'];
+
+        if (($question['parent_option_label'] ?? null) !== null) {
+            $label .= sprintf(' [Cabang: jika memilih "%s"]', $question['parent_option_label']);
+        }
+
+        return $label;
     }
 
     private function buildResponseVolume(int $userId, int $year): array
@@ -444,15 +634,9 @@ final class AnalysisSurveyService
         return $labels[$month] ?? (string) $month;
     }
 
-    private function toTabSeparatedValues(array $rows): string
+    private function escapeCell(mixed $cell): string
     {
-        return implode("\r\n", array_map(
-            fn (array $row): string => implode("\t", array_map(
-                fn (mixed $cell): string => $this->sanitizeCell($cell),
-                $row,
-            )),
-            $rows,
-        ));
+        return htmlspecialchars($this->sanitizeCell($cell), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     private function sanitizeCell(mixed $cell): string
