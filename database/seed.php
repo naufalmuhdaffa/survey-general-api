@@ -743,6 +743,133 @@ if ($findSurvey->fetch()) {
     }
 }
 
+$hundredPageSurveyTitle = 'Survey Navigasi 100 Halaman Layanan Kota 2026';
+$findSurvey->execute([$hundredPageSurveyTitle]);
+
+if ($findSurvey->fetch()) {
+    $skipped++;
+} else {
+    $budi = $pdo->query("
+        SELECT id
+        FROM users
+        WHERE username = 'budi' OR full_name = 'Budi Santoso'
+        ORDER BY username = 'budi' DESC, id ASC
+        LIMIT 1
+    ")->fetch();
+
+    if (!$budi) {
+        echo "Seed survey 100 halaman dilewati: akun Budi tidak ditemukan." . PHP_EOL;
+    } else {
+        $pdo->beginTransaction();
+
+        try {
+            $opensAt = '2026-07-10 09:00:00';
+            $closesAt = '2026-12-20 17:00:00';
+            $createdAt = '2026-07-01 09:00:00';
+            $updatedAt = '2026-07-14 11:00:00';
+
+            $insertSurvey->execute([
+                $hundredPageSurveyTitle,
+                'Seed khusus untuk menguji navigasi, progress, dan rendering survey dengan jumlah halaman sangat panjang.',
+                'Setiap halaman berisi satu pertanyaan pilihan. Gunakan survey ini untuk menguji sidebar halaman dan pagination panjang.',
+                'Badan Perencanaan Pembangunan Daerah Kota Yogyakarta',
+                35,
+                'open',
+                (int) $budi['id'],
+                $opensAt,
+                $closesAt,
+                $createdAt,
+                $updatedAt,
+            ]);
+
+            $surveyId = (int) $pdo->lastInsertId();
+            $insertRestriction->execute([$surveyId, 'public']);
+            $questions = [];
+            $questionTypes = ['radio_button', 'dropdown', 'checkbox'];
+
+            for ($pageNumber = 1; $pageNumber <= 100; $pageNumber++) {
+                $sectionName = sprintf('Section %03d - Evaluasi Layanan', $pageNumber);
+                $questionType = $questionTypes[($pageNumber - 1) % \count($questionTypes)];
+
+                $insertPage->execute([$surveyId, $pageNumber, $sectionName]);
+                $insertQuestion->execute([
+                    $surveyId,
+                    sprintf('Bagaimana penilaian Anda terhadap indikator layanan halaman %03d?', $pageNumber),
+                    $questionType,
+                    1,
+                    1,
+                    $pageNumber,
+                    null,
+                ]);
+
+                $questionId = (int) $pdo->lastInsertId();
+                $optionIds = [];
+                $optionLabels = [
+                    'Sangat baik',
+                    'Baik',
+                    'Cukup',
+                    'Perlu perbaikan',
+                ];
+
+                foreach ($optionLabels as $optionOrder => $optionText) {
+                    $insertOption->execute([$questionId, $optionText, $optionOrder + 1]);
+                    $optionIds[] = (int) $pdo->lastInsertId();
+                }
+
+                $questions[] = [
+                    'id' => $questionId,
+                    'type' => $questionType,
+                    'options' => $optionIds,
+                ];
+            }
+
+            $longSurveyRespondents = array_values(array_filter(
+                $users,
+                static fn (array $user): bool => (int) $user['id'] !== (int) $budi['id'],
+            ));
+            $longSurveyRespondents = array_slice($longSurveyRespondents, 0, 3);
+
+            foreach ($longSurveyRespondents as $responseIndex => $respondent) {
+                $submittedAt = date('Y-m-d H:i:s', strtotime(sprintf('2026-07-%02d 13:15:00', 11 + $responseIndex)));
+                $insertResponse->execute([
+                    $surveyId,
+                    (int) $respondent['id'],
+                    $submittedAt,
+                    $submittedAt,
+                    $submittedAt,
+                ]);
+
+                $responseId = (int) $pdo->lastInsertId();
+
+                foreach ($questions as $questionIndex => $question) {
+                    if ($question['type'] === 'checkbox') {
+                        foreach (selectManyOptions($question['options'], $responseIndex + $questionIndex) as $optionId) {
+                            $insertAnswer->execute([$responseId, $question['id'], null, $optionId]);
+                            $answerInserted++;
+                        }
+
+                        continue;
+                    }
+
+                    $optionId = selectOneOption($question['options'], $responseIndex + $questionIndex);
+                    $insertAnswer->execute([$responseId, $question['id'], null, $optionId]);
+                    $answerInserted++;
+                }
+
+                $responseInserted++;
+            }
+
+            $pdo->commit();
+            $inserted++;
+
+            echo "Seed khusus ditambahkan: {$hundredPageSurveyTitle} (2026), dibuat oleh Budi." . PHP_EOL;
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+}
+
 echo "Seed survey selesai. Data baru: {$inserted}. Dilewati: {$skipped}. Response: {$responseInserted}. Answer: {$answerInserted}." . PHP_EOL;
 
 function makeSubmittedAt(int $opensAtTimestamp, int $closesAtTimestamp, int $responseIndex, int $surveyIndex): string
