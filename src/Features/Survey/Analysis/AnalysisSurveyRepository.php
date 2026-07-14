@@ -27,11 +27,11 @@ final class AnalysisSurveyRepository
         END";
     }
 
-    public function getSummary(?int $year = null): array
+    public function getSummary(int $createdBy, ?int $year = null): array
     {
         $effectiveStatus = $this->effectiveStatusExpression();
-        $surveyParams = [];
-        $responseParams = [];
+        $surveyParams = [$createdBy];
+        $responseParams = [$createdBy];
         $surveyYearCondition = $this->surveyYearCondition($year, $surveyParams);
         $responseYearCondition = '';
 
@@ -49,7 +49,9 @@ final class AnalysisSurveyRepository
                 (
                     SELECT COUNT(*)
                     FROM responses r
+                    JOIN surveys rs ON rs.id = r.survey_id
                     WHERE r.status = 'submitted'
+                        AND rs.created_by = ?
                         {$responseYearCondition}
                 ) AS total_respondents
             FROM surveys s
@@ -60,47 +62,58 @@ final class AnalysisSurveyRepository
         return $stmt->fetch() ?: [];
     }
 
-    public function getAvailableYears(): array
+    public function getAvailableYears(int $createdBy): array
     {
-        $stmt = $this->pdo->query("
+        $stmt = $this->pdo->prepare("
             SELECT DISTINCT year_value
             FROM (
-                SELECT YEAR(created_at) AS year_value FROM surveys WHERE created_at IS NOT NULL
+                SELECT YEAR(created_at) AS year_value
+                FROM surveys
+                WHERE created_by = ? AND created_at IS NOT NULL
                 UNION
-                SELECT YEAR(opens_at) AS year_value FROM surveys WHERE opens_at IS NOT NULL
+                SELECT YEAR(opens_at) AS year_value
+                FROM surveys
+                WHERE created_by = ? AND opens_at IS NOT NULL
                 UNION
-                SELECT YEAR(submitted_at) AS year_value FROM responses WHERE submitted_at IS NOT NULL
+                SELECT YEAR(r.submitted_at) AS year_value
+                FROM responses r
+                JOIN surveys s ON s.id = r.survey_id
+                WHERE s.created_by = ? AND r.submitted_at IS NOT NULL
             ) years
             WHERE year_value IS NOT NULL
             ORDER BY year_value DESC
         ");
+        $stmt->execute([$createdBy, $createdBy, $createdBy]);
 
         return $stmt->fetchAll();
     }
 
-    public function getResponseVolume(int $year): array
+    public function getResponseVolume(int $createdBy, int $year): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT MONTH(submitted_at) AS month, COUNT(*) AS total
-            FROM responses
-            WHERE status = 'submitted'
-                AND submitted_at IS NOT NULL
-                AND submitted_at >= ?
-                AND submitted_at < ?
-            GROUP BY MONTH(submitted_at)
+            SELECT MONTH(r.submitted_at) AS month, COUNT(*) AS total
+            FROM responses r
+            JOIN surveys s ON s.id = r.survey_id
+            WHERE r.status = 'submitted'
+                AND r.submitted_at IS NOT NULL
+                AND r.submitted_at >= ?
+                AND r.submitted_at < ?
+                AND s.created_by = ?
+            GROUP BY MONTH(r.submitted_at)
             ORDER BY month ASC
         ");
         $stmt->execute([
             $year . '-01-01 00:00:00',
             ($year + 1) . '-01-01 00:00:00',
+            $createdBy,
         ]);
 
         return $stmt->fetchAll();
     }
 
-    public function countSurveys(string $search, ?string $status, ?int $year): int
+    public function countSurveys(int $createdBy, string $search, ?string $status, ?int $year): int
     {
-        $params = [];
+        $params = [$createdBy];
         $where = $this->filterCondition($search, $status, $year, $params);
 
         $stmt = $this->pdo->prepare("
@@ -114,13 +127,14 @@ final class AnalysisSurveyRepository
     }
 
     public function getSurveys(
+        int $createdBy,
         string $search,
         ?string $status,
         ?int $year,
         int $limit,
         int $offset
     ): array {
-        $params = [];
+        $params = [$createdBy];
         $where = $this->filterCondition($search, $status, $year, $params);
         $effectiveStatus = $this->effectiveStatusExpression();
 
@@ -167,7 +181,7 @@ final class AnalysisSurveyRepository
         return $stmt->fetchAll();
     }
 
-    public function getSurveyById(int $surveyId): array|false
+    public function getSurveyById(int $surveyId, int $createdBy): array|false
     {
         $effectiveStatus = $this->effectiveStatusExpression();
 
@@ -191,9 +205,9 @@ final class AnalysisSurveyRepository
                     WHERE sr.survey_id = s.id
                 ), '') AS positions
             FROM surveys s
-            WHERE s.id = ?
+            WHERE s.id = ? AND s.created_by = ?
         ");
-        $stmt->execute([$surveyId]);
+        $stmt->execute([$surveyId, $createdBy]);
 
         return $stmt->fetch();
     }
@@ -384,7 +398,7 @@ final class AnalysisSurveyRepository
         array &$params
     ): string
     {
-        $conditions = [];
+        $conditions = ['s.created_by = ?'];
         $effectiveStatus = $this->effectiveStatusExpression();
 
         if ($search !== '') {
@@ -418,14 +432,14 @@ final class AnalysisSurveyRepository
     private function surveyYearCondition(?int $year, array &$params): string
     {
         if ($year === null) {
-            return '';
+            return 'WHERE s.created_by = ?';
         }
 
         $start = $year . '-01-01 00:00:00';
         $end = ($year + 1) . '-01-01 00:00:00';
         array_push($params, $start, $end, $start, $end, $start, $end);
 
-        return "WHERE (
+        return "WHERE s.created_by = ? AND (
             (s.created_at >= ? AND s.created_at < ?)
             OR (s.opens_at IS NOT NULL AND s.opens_at >= ? AND s.opens_at < ?)
             OR (s.closes_at IS NOT NULL AND s.closes_at >= ? AND s.closes_at < ?)

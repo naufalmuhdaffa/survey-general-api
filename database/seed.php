@@ -9,15 +9,24 @@ Dotenv\Dotenv::createImmutable(dirname(__DIR__))->load();
 $pdo = App\Database::connection();
 $shouldResetSurveys = \in_array('--reset-surveys', $argv, true);
 
-$creator = $pdo->query("
+$creators = $pdo->query("
     SELECT u.id
     FROM users u
     JOIN roles r ON r.id = u.role_id
+    WHERE r.name IN ('superadmin', 'admin_opd')
     ORDER BY r.name = 'superadmin' DESC, r.name = 'admin_opd' DESC, u.id ASC
-    LIMIT 1
-")->fetch();
+")->fetchAll();
 
-if (!$creator) {
+if ($creators === []) {
+    $creators = $pdo->query("
+        SELECT id
+        FROM users
+        ORDER BY id ASC
+        LIMIT 1
+    ")->fetchAll();
+}
+
+if ($creators === []) {
     echo "Seed dilewati: belum ada user untuk created_by." . PHP_EOL;
     exit(0);
 }
@@ -49,7 +58,6 @@ if ($shouldResetSurveys) {
     $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
 }
 
-$creatorId = (int) $creator['id'];
 $opdOptions = [
     'Dinas Komunikasi Informatika dan Persandian Kota Yogyakarta',
     'Dinas Pendidikan Pemuda dan Olahraga Kota Yogyakarta',
@@ -344,7 +352,7 @@ foreach ($surveys as $index => $survey) {
             $opdOptions[$index % \count($opdOptions)],
             $survey['estimated_time'],
             $survey['status'],
-            $creatorId,
+            (int) $creators[$index % \count($creators)]['id'],
             date('Y-m-d H:i:s', $opensAtTimestamp),
             date('Y-m-d H:i:s', $closesAtTimestamp),
             date('Y-m-d H:i:s', $createdAtTimestamp),

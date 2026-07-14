@@ -19,10 +19,10 @@ final class AnalysisSurveyController
 
     public function list(): void
     {
-        PrivilegeService::require('analytics:read');
+        $user = PrivilegeService::require('analytics:read');
 
         try {
-            $analysis = $this->service->list($_GET);
+            $analysis = $this->service->list((int) $user['id'], $_GET);
         } catch (RuntimeException $e) {
             $this->error($e, 'Data analisis belum bisa dimuat.');
         }
@@ -35,10 +35,10 @@ final class AnalysisSurveyController
 
     public function detail(int $surveyId): void
     {
-        PrivilegeService::require('analytics:read');
+        $user = PrivilegeService::require('analytics:read');
 
         try {
-            $analysis = $this->service->detail($surveyId, $_GET);
+            $analysis = $this->service->detail((int) $user['id'], $surveyId, $_GET);
         } catch (RuntimeException $e) {
             $this->error($e, 'Detail analisis belum bisa dimuat.');
         }
@@ -51,10 +51,10 @@ final class AnalysisSurveyController
 
     public function export(int $surveyId): void
     {
-        PrivilegeService::require('analytics:read');
+        $user = PrivilegeService::require('analytics:read');
 
         try {
-            $export = $this->service->export($surveyId);
+            $export = $this->service->export((int) $user['id'], $surveyId);
         } catch (RuntimeException $e) {
             $this->error($e, 'Data export belum bisa dibuat.');
         }

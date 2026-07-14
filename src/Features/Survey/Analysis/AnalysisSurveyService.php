@@ -25,25 +25,25 @@ final class AnalysisSurveyService
      * @param array<string, mixed> $query
      * @return array<string, mixed>
      */
-    public function list(array $query): array
+    public function list(int $userId, array $query): array
     {
         $search = $this->normalizeSearch($query['search'] ?? '');
         $status = $this->normalizeOption($query['status'] ?? '', self::VALID_STATUSES);
         $year = $this->normalizeYear($query['year'] ?? date('Y'));
         $perPage = $this->normalizePositiveInteger($query['per_page'] ?? self::DEFAULT_PER_PAGE, self::DEFAULT_PER_PAGE, self::MAX_PER_PAGE);
-        $total = $this->repository->countSurveys($search, $status, $year);
+        $total = $this->repository->countSurveys($userId, $search, $status, $year);
         $totalPages = max(1, (int) ceil($total / $perPage));
         $page = min($this->normalizePositiveInteger($query['page'] ?? 1, 1), $totalPages);
         $offset = ($page - 1) * $perPage;
 
         return [
-            'summary' => $this->formatSummary($this->repository->getSummary($year)),
-            'available_years' => $this->formatAvailableYears($this->repository->getAvailableYears(), $year),
+            'summary' => $this->formatSummary($this->repository->getSummary($userId, $year)),
+            'available_years' => $this->formatAvailableYears($this->repository->getAvailableYears($userId), $year),
             'selected_year' => $year,
-            'response_volume' => $this->buildResponseVolume($year),
+            'response_volume' => $this->buildResponseVolume($userId, $year),
             'items' => array_map(
                 fn (array $survey): array => $this->formatSurveyRow($survey),
-                $this->repository->getSurveys($search, $status, $year, $perPage, $offset),
+                $this->repository->getSurveys($userId, $search, $status, $year, $perPage, $offset),
             ),
             'meta' => [
                 'page' => $page,
@@ -58,9 +58,9 @@ final class AnalysisSurveyService
      * @param array<string, mixed> $query
      * @return array<string, mixed>
      */
-    public function detail(int $surveyId, array $query): array
+    public function detail(int $userId, int $surveyId, array $query): array
     {
-        $survey = $this->repository->getSurveyById($surveyId);
+        $survey = $this->repository->getSurveyById($surveyId, $userId);
 
         if (!$survey) {
             throw new RuntimeException('Survei tidak ditemukan', 404);
@@ -112,9 +112,9 @@ final class AnalysisSurveyService
     /**
      * @return array{filename: string, content: string}
      */
-    public function export(int $surveyId): array
+    public function export(int $userId, int $surveyId): array
     {
-        $survey = $this->repository->getSurveyById($surveyId);
+        $survey = $this->repository->getSurveyById($surveyId, $userId);
 
         if (!$survey) {
             throw new RuntimeException('Survei tidak ditemukan', 404);
@@ -166,9 +166,9 @@ final class AnalysisSurveyService
         ];
     }
 
-    private function buildResponseVolume(int $year): array
+    private function buildResponseVolume(int $userId, int $year): array
     {
-        $rawVolume = $this->repository->getResponseVolume($year);
+        $rawVolume = $this->repository->getResponseVolume($userId, $year);
         $volumeByMonth = [];
 
         foreach ($rawVolume as $item) {
