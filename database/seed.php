@@ -66,8 +66,8 @@ $baseSurveys = [
         'description' => 'Mengukur kepuasan warga terhadap akses, rute, dan kenyamanan transportasi publik di Kota Yogyakarta.',
         'status' => 'open',
         'estimated_time' => 8,
-        'opens_at' => '-10 days',
-        'closes_at' => '+18 days',
+        'opens_at' => '2026-01-10 09:00:00',
+        'closes_at' => '2026-08-12 17:00:00',
         'positions' => ['public'],
         'responses' => 6,
     ],
@@ -76,8 +76,8 @@ $baseSurveys = [
         'description' => 'Memetakan kesiapan perangkat kelurahan dalam menggunakan layanan digital baru.',
         'status' => 'upcoming',
         'estimated_time' => 12,
-        'opens_at' => '+7 days',
-        'closes_at' => '+37 days',
+        'opens_at' => '2026-08-05 09:00:00',
+        'closes_at' => '2026-09-05 17:00:00',
         'positions' => ['asn', 'non_asn'],
         'responses' => 0,
     ],
@@ -86,8 +86,8 @@ $baseSurveys = [
         'description' => 'Mengumpulkan aspirasi warga tentang keamanan, kebersihan, dan aksesibilitas ruang publik ramah anak.',
         'status' => 'open',
         'estimated_time' => 10,
-        'opens_at' => '-5 days',
-        'closes_at' => '+25 days',
+        'opens_at' => '2026-03-03 09:00:00',
+        'closes_at' => '2026-09-20 17:00:00',
         'positions' => ['public'],
         'responses' => 5,
     ],
@@ -96,8 +96,8 @@ $baseSurveys = [
         'description' => 'Evaluasi proses administrasi lintas OPD untuk memperbaiki waktu layanan dan akurasi data.',
         'status' => 'draft',
         'estimated_time' => 15,
-        'opens_at' => '+20 days',
-        'closes_at' => '+50 days',
+        'opens_at' => '2025-11-04 09:00:00',
+        'closes_at' => '2025-12-04 17:00:00',
         'positions' => ['asn'],
         'responses' => 0,
     ],
@@ -106,8 +106,8 @@ $baseSurveys = [
         'description' => 'Menilai dampak program bantuan, pelatihan, dan pendampingan terhadap pelaku UMKM lokal.',
         'status' => 'closed',
         'estimated_time' => 9,
-        'opens_at' => '-60 days',
-        'closes_at' => '-15 days',
+        'opens_at' => '2025-05-12 09:00:00',
+        'closes_at' => '2025-06-20 17:00:00',
         'positions' => ['public'],
         'responses' => 7,
     ],
@@ -116,8 +116,8 @@ $baseSurveys = [
         'description' => 'Memetakan prioritas warga terhadap jalan lingkungan, drainase, penerangan, dan fasilitas umum.',
         'status' => 'open',
         'estimated_time' => 7,
-        'opens_at' => '-2 days',
-        'closes_at' => '+21 days',
+        'opens_at' => '2026-06-01 09:00:00',
+        'closes_at' => '2026-09-15 17:00:00',
         'positions' => ['public'],
         'responses' => 4,
     ],
@@ -126,8 +126,8 @@ $baseSurveys = [
         'description' => 'Mengevaluasi kemudahan, kecepatan respons, dan kejelasan tindak lanjut pada kanal aduan warga.',
         'status' => 'upcoming',
         'estimated_time' => 6,
-        'opens_at' => '+14 days',
-        'closes_at' => '+44 days',
+        'opens_at' => '2026-10-01 09:00:00',
+        'closes_at' => '2026-11-01 17:00:00',
         'positions' => ['public'],
         'responses' => 0,
     ],
@@ -174,25 +174,41 @@ $positionSets = [
 
 $statuses = ['open', 'upcoming', 'closed', 'draft'];
 $surveys = $baseSurveys;
+$currentYear = (int) date('Y');
 
 for ($index = \count($surveys) + 1; $index <= 100; $index++) {
     $status = $statuses[$index % \count($statuses)];
 
     if ($status === 'open') {
-        $opensAt = '-' . (($index % 14) + 1) . ' days';
-        $closesAt = '+' . (($index % 35) + 7) . ' days';
+        $month = (($index * 3) % 7) + 1;
+        $day = ($index % 20) + 1;
+        $opensAt = sprintf('%d-%02d-%02d 09:00:00', $currentYear, $month, $day);
+        $closesAt = sprintf('%d-%02d-%02d 17:00:00', $currentYear, min(12, $month + 5), min(28, $day + 4));
         $responses = 2 + ($index % 5);
     } elseif ($status === 'upcoming') {
-        $opensAt = '+' . (($index % 30) + 1) . ' days';
-        $closesAt = '+' . (($index % 30) + 31) . ' days';
+        $month = 8 + ($index % 5);
+        $day = ($index % 20) + 1;
+        $opensAt = sprintf('%d-%02d-%02d 09:00:00', $currentYear, $month, $day);
+        $closesAt = sprintf('%d-%02d-%02d 17:00:00', $currentYear, min(12, $month + 1), min(28, $day + 6));
         $responses = 0;
     } elseif ($status === 'closed') {
-        $opensAt = '-' . (($index % 90) + 45) . ' days';
-        $closesAt = '-' . (($index % 30) + 1) . ' days';
+        $year = $currentYear - 2 + ($index % 3);
+        $month = ($index % 12) + 1;
+
+        if ($year >= $currentYear && $month > 6) {
+            $month = ($index % 6) + 1;
+        }
+
+        $day = min(24, ($index % 20) + 1);
+        $opensAt = sprintf('%d-%02d-%02d 09:00:00', $year, $month, $day);
+        $closesAt = date('Y-m-d 17:00:00', strtotime('+24 days', strtotime($opensAt)));
         $responses = 1 + ($index % 6);
     } else {
-        $opensAt = '+' . (($index % 45) + 10) . ' days';
-        $closesAt = '+' . (($index % 45) + 40) . ' days';
+        $year = $currentYear - 2 + ($index % 3);
+        $month = ($index % 12) + 1;
+        $day = min(24, ($index % 20) + 1);
+        $opensAt = sprintf('%d-%02d-%02d 09:00:00', $year, $month, $day);
+        $closesAt = date('Y-m-d 17:00:00', strtotime('+32 days', strtotime($opensAt)));
         $responses = 0;
     }
 
@@ -220,9 +236,11 @@ $insertSurvey = $pdo->prepare("
         status,
         created_by,
         opens_at,
-        closes_at
+        closes_at,
+        created_at,
+        updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ");
 $insertRestriction = $pdo->prepare("
     INSERT IGNORE INTO survey_restrictions (survey_id, position)
@@ -314,6 +332,11 @@ foreach ($surveys as $index => $survey) {
     $pdo->beginTransaction();
 
     try {
+        $opensAtTimestamp = strtotime($survey['opens_at']);
+        $closesAtTimestamp = strtotime($survey['closes_at']);
+        $createdAtTimestamp = strtotime('-14 days', $opensAtTimestamp);
+        $updatedAtTimestamp = min(time(), max($createdAtTimestamp, $closesAtTimestamp));
+
         $insertSurvey->execute([
             $survey['title'],
             $survey['description'],
@@ -322,8 +345,10 @@ foreach ($surveys as $index => $survey) {
             $survey['estimated_time'],
             $survey['status'],
             $creatorId,
-            date('Y-m-d H:i:s', strtotime($survey['opens_at'])),
-            date('Y-m-d H:i:s', strtotime($survey['closes_at'])),
+            date('Y-m-d H:i:s', $opensAtTimestamp),
+            date('Y-m-d H:i:s', $closesAtTimestamp),
+            date('Y-m-d H:i:s', $createdAtTimestamp),
+            date('Y-m-d H:i:s', $updatedAtTimestamp),
         ]);
 
         $surveyId = (int) $pdo->lastInsertId();
@@ -386,10 +411,7 @@ foreach ($surveys as $index => $survey) {
         $respondents = resolveRespondents($users, $survey['positions'], (int) $survey['responses']);
 
         foreach ($respondents as $responseIndex => $respondent) {
-            $submittedAt = date(
-                'Y-m-d H:i:s',
-                strtotime('-' . (($responseIndex + $index) % 150 + 1) . ' hours'),
-            );
+            $submittedAt = makeSubmittedAt($opensAtTimestamp, $closesAtTimestamp, $responseIndex, $index);
             $insertResponse->execute([
                 $surveyId,
                 (int) $respondent['id'],
@@ -446,6 +468,21 @@ foreach ($surveys as $index => $survey) {
 }
 
 echo "Seed survey selesai. Data baru: {$inserted}. Dilewati: {$skipped}. Response: {$responseInserted}. Answer: {$answerInserted}." . PHP_EOL;
+
+function makeSubmittedAt(int $opensAtTimestamp, int $closesAtTimestamp, int $responseIndex, int $surveyIndex): string
+{
+    $endTimestamp = min($closesAtTimestamp, time());
+
+    if ($endTimestamp <= $opensAtTimestamp) {
+        $endTimestamp = $opensAtTimestamp + (7 * 24 * 60 * 60);
+    }
+
+    $span = max(24 * 60 * 60, $endTimestamp - $opensAtTimestamp);
+    $offsetSeed = ($responseIndex + 1) * (($surveyIndex % 9) + 1) * 13 * 60 * 60;
+    $offset = $offsetSeed % $span;
+
+    return date('Y-m-d H:i:s', $opensAtTimestamp + $offset);
+}
 
 /**
  * @param array<int, array<string, mixed>> $users
