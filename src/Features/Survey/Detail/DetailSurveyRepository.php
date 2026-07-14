@@ -32,7 +32,7 @@ final class DetailSurveyRepository
         $effectiveStatus = $this->effectiveStatusExpression();
 
         $stmt = $this->pdo->prepare("
-            SELECT s.id, s.title, s.description, s.instructions, s.estimated_time,
+            SELECT s.id, s.title, s.description, s.instructions, s.opd_pengampu, s.estimated_time,
             COALESCE(s.thumbnail_path, '/uploads/survey-thumbnails/default.svg') AS thumbnail_path,
             {$effectiveStatus} AS status, s.opens_at, s.closes_at
             FROM surveys s

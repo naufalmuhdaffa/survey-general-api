@@ -35,7 +35,7 @@ final class UpdateSurveyService
         }
 
         $currentStatus = (string) $currentSurvey['status'];
-        $allowedFields = ['title', 'description', 'instructions', 'estimated_time', 'status', 'opens_at', 'closes_at'];
+        $allowedFields = ['title', 'description', 'instructions', 'opd_pengampu', 'estimated_time', 'status', 'opens_at', 'closes_at'];
         $fields = [];
 
         foreach ($allowedFields as $field) {
@@ -71,6 +71,14 @@ final class UpdateSurveyService
                 'Petunjuk pengisian (instructions) harus berupa teks'
             );
             $fields['instructions'] = $fields['instructions'] === '' ? null : $fields['instructions'];
+        }
+
+        if (array_key_exists('opd_pengampu', $fields)) {
+            $fields['opd_pengampu'] = $this->normalizeOptionalText(
+                $fields['opd_pengampu'],
+                'OPD pengampu (opd_pengampu) harus berupa teks'
+            );
+            $fields['opd_pengampu'] = $fields['opd_pengampu'] === '' ? null : $fields['opd_pengampu'];
         }
 
         if (array_key_exists('estimated_time', $fields)) {

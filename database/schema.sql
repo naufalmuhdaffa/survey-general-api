@@ -92,6 +92,7 @@ INSERT IGNORE INTO privileges (name) VALUES
 ('survey:create'),
 ('survey:update'),
 ('survey:delete'),
+('analytics:read'),
 ('user:read'),
 ('user:update'),
 ('role:read'),
@@ -102,7 +103,7 @@ INSERT IGNORE INTO privileges (name) VALUES
 INSERT IGNORE INTO role_privileges (role_id, privilege_id)
 SELECT r.id, p.id
 FROM roles r
-JOIN privileges p ON p.name IN ('survey:read', 'survey:create', 'survey:update', 'survey:delete')
+JOIN privileges p ON p.name IN ('survey:read', 'survey:create', 'survey:update', 'survey:delete', 'analytics:read')
 WHERE r.name IN ('admin_opd', 'superadmin');
 
 INSERT IGNORE INTO role_privileges (role_id, privilege_id)
@@ -116,6 +117,7 @@ CREATE TABLE IF NOT EXISTS surveys (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     instructions TEXT,
+    opd_pengampu VARCHAR(255) NULL,
     estimated_time INT UNSIGNED,
     thumbnail_path VARCHAR(255) NULL,
     status ENUM('draft', 'upcoming', 'open', 'closed') NOT NULL DEFAULT 'draft',
@@ -126,6 +128,9 @@ CREATE TABLE IF NOT EXISTS surveys (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT
 );
+
+ALTER TABLE surveys
+ADD COLUMN IF NOT EXISTS opd_pengampu VARCHAR(255) NULL AFTER instructions;
 
 CREATE TABLE IF NOT EXISTS survey_restrictions (
     survey_id INT UNSIGNED NOT NULL,

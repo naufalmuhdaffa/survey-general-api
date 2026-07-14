@@ -38,6 +38,8 @@ final class CreateSurveyService
         $description = $this->normalizeOptionalText($data['description'] ?? null, 'Deskripsi (description) harus berupa teks');
         $instructions = $this->normalizeOptionalText($data['instructions'] ?? null, 'Petunjuk pengisian (instructions) harus berupa teks');
         $instructions = $instructions === '' ? null : $instructions;
+        $opdPengampu = $this->normalizeOptionalText($data['opd_pengampu'] ?? null, 'OPD pengampu (opd_pengampu) harus berupa teks');
+        $opdPengampu = $opdPengampu === '' ? null : $opdPengampu;
         $estimatedTime = $this->normalizeEstimatedTime($data['estimated_time'] ?? null);
         $status = $this->normalizeStatus($data['status'] ?? 'draft');
         $opensAt = $this->normalizeDateTime($data['opens_at'] ?? null, 'Format opens_at tidak valid');
@@ -62,6 +64,7 @@ final class CreateSurveyService
             $title,
             $description,
             $instructions,
+            $opdPengampu,
             $estimatedTime,
             $thumbnailPath,
             $status,

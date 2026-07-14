@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Survey;
 
+use App\Features\Survey\Analysis\AnalysisSurveyRoute;
 use App\Features\Survey\Create\CreateSurveyRoute;
 use App\Features\Survey\List\ListSurveyRoute;
 use App\Features\Survey\Manage\ManageSurveyRoute;
@@ -33,6 +34,10 @@ final class SurveyRoute implements RouteInterface
         }
 
         if (ManageSurveyRoute::dispatch($path, $method, $segments)) {
+            return true;
+        }
+
+        if (AnalysisSurveyRoute::dispatch($path, $method, $segments)) {
             return true;
         }
 
