@@ -22,7 +22,7 @@ final class AnalysisSurveyController
         $user = PrivilegeService::require('analytics:read');
 
         try {
-            $analysis = $this->service->list((int) $user['id'], $_GET);
+            $analysis = $this->service->list($this->createdByScope($user), $_GET);
         } catch (RuntimeException $e) {
             $this->error($e, 'Data analisis belum bisa dimuat.');
         }
@@ -38,7 +38,7 @@ final class AnalysisSurveyController
         $user = PrivilegeService::require('analytics:read');
 
         try {
-            $analysis = $this->service->detail((int) $user['id'], $surveyId, $_GET);
+            $analysis = $this->service->detail($this->createdByScope($user), $surveyId, $_GET);
         } catch (RuntimeException $e) {
             $this->error($e, 'Detail analisis belum bisa dimuat.');
         }
@@ -54,7 +54,7 @@ final class AnalysisSurveyController
         $user = PrivilegeService::require('analytics:read');
 
         try {
-            $export = $this->service->export((int) $user['id'], $surveyId);
+            $export = $this->service->export($this->createdByScope($user), $surveyId);
         } catch (RuntimeException $e) {
             $this->error($e, 'Data export belum bisa dibuat.');
         }
@@ -65,6 +65,16 @@ final class AnalysisSurveyController
         header('Cache-Control: no-store, no-cache, must-revalidate');
         echo "\xEF\xBB\xBF" . $export['content'];
         exit;
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    private function createdByScope(array $user): ?int
+    {
+        return ($user['effective_role'] ?? null) === 'superadmin'
+            ? null
+            : (int) $user['id'];
     }
 
     private function error(RuntimeException $e, string $fallback): never

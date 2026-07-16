@@ -25,25 +25,26 @@ final class AnalysisSurveyService
      * @param array<string, mixed> $query
      * @return array<string, mixed>
      */
-    public function list(int $userId, array $query): array
+    public function list(?int $createdBy, array $query): array
     {
         $search = $this->normalizeSearch($query['search'] ?? '');
         $status = $this->normalizeOption($query['status'] ?? '', self::VALID_STATUSES);
         $year = $this->normalizeYear($query['year'] ?? date('Y'));
         $perPage = $this->normalizePositiveInteger($query['per_page'] ?? self::DEFAULT_PER_PAGE, self::DEFAULT_PER_PAGE, self::MAX_PER_PAGE);
-        $total = $this->repository->countSurveys($userId, $search, $status, $year);
+        $total = $this->repository->countSurveys($createdBy, $search, $status, $year);
         $totalPages = max(1, (int) ceil($total / $perPage));
         $page = min($this->normalizePositiveInteger($query['page'] ?? 1, 1), $totalPages);
         $offset = ($page - 1) * $perPage;
 
         return [
-            'summary' => $this->formatSummary($this->repository->getSummary($userId, $year)),
-            'available_years' => $this->formatAvailableYears($this->repository->getAvailableYears($userId), $year),
+            'summary' => $this->formatSummary($this->repository->getSummary($createdBy, $year)),
+            'available_years' => $this->formatAvailableYears($this->repository->getAvailableYears($createdBy), $year),
             'selected_year' => $year,
-            'response_volume' => $this->buildResponseVolume($userId, $year),
+            'scope' => $createdBy === null ? 'all' : 'own',
+            'response_volume' => $this->buildResponseVolume($createdBy, $year),
             'items' => array_map(
                 fn (array $survey): array => $this->formatSurveyRow($survey),
-                $this->repository->getSurveys($userId, $search, $status, $year, $perPage, $offset),
+                $this->repository->getSurveys($createdBy, $search, $status, $year, $perPage, $offset),
             ),
             'meta' => [
                 'page' => $page,
@@ -58,9 +59,9 @@ final class AnalysisSurveyService
      * @param array<string, mixed> $query
      * @return array<string, mixed>
      */
-    public function detail(int $userId, int $surveyId, array $query): array
+    public function detail(?int $createdBy, int $surveyId, array $query): array
     {
-        $survey = $this->repository->getSurveyById($surveyId, $userId);
+        $survey = $this->repository->getSurveyById($surveyId, $createdBy);
 
         if (!$survey) {
             throw new RuntimeException('Survei tidak ditemukan', 404);
@@ -112,9 +113,9 @@ final class AnalysisSurveyService
     /**
      * @return array{filename: string, content: string}
      */
-    public function export(int $userId, int $surveyId): array
+    public function export(?int $createdBy, int $surveyId): array
     {
-        $survey = $this->repository->getSurveyById($surveyId, $userId);
+        $survey = $this->repository->getSurveyById($surveyId, $createdBy);
 
         if (!$survey) {
             throw new RuntimeException('Survei tidak ditemukan', 404);
@@ -356,9 +357,9 @@ final class AnalysisSurveyService
         return $label;
     }
 
-    private function buildResponseVolume(int $userId, int $year): array
+    private function buildResponseVolume(?int $createdBy, int $year): array
     {
-        $rawVolume = $this->repository->getResponseVolume($userId, $year);
+        $rawVolume = $this->repository->getResponseVolume($createdBy, $year);
         $volumeByMonth = [];
 
         foreach ($rawVolume as $item) {
@@ -404,6 +405,11 @@ final class AnalysisSurveyService
             'active_surveys' => (int) ($summary['active_surveys'] ?? 0),
             'closed_surveys' => (int) ($summary['closed_surveys'] ?? 0),
             'total_respondents' => (int) ($summary['total_respondents'] ?? 0),
+            'position_respondents' => [
+                'asn' => (int) ($summary['asn_respondents'] ?? 0),
+                'non_asn' => (int) ($summary['non_asn_respondents'] ?? 0),
+                'public' => (int) ($summary['public_respondents'] ?? 0),
+            ],
         ];
     }
 
