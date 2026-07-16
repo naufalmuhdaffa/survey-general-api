@@ -286,6 +286,18 @@ $insertResponse = $pdo->prepare("
     )
     VALUES (?, ?, 'submitted', 2, ?, ?, ?)
 ");
+$insertDraftResponse = $pdo->prepare("
+    INSERT INTO responses (
+        survey_id,
+        user_id,
+        status,
+        current_page,
+        submitted_at,
+        created_at,
+        updated_at
+    )
+    VALUES (?, ?, 'draft', ?, NULL, ?, ?)
+");
 $insertAnswer = $pdo->prepare("
     INSERT INTO answers (response_id, question_id, answer_text, option_id)
     VALUES (?, ?, ?, ?)
@@ -472,6 +484,122 @@ foreach ($surveys as $index => $survey) {
     } catch (Throwable $e) {
         $pdo->rollBack();
         throw $e;
+    }
+}
+
+$unfinishedSurveyTitle = 'Survey Draft Belum Terselesaikan Layanan Kota 2026';
+$findSurvey->execute([$unfinishedSurveyTitle]);
+
+if ($findSurvey->fetch()) {
+    $skipped++;
+} else {
+    $budi = $pdo->query("
+        SELECT id
+        FROM users
+        WHERE username = 'budi' OR full_name = 'Budi Santoso'
+        ORDER BY username = 'budi' DESC, id ASC
+        LIMIT 1
+    ")->fetch();
+
+    if (!$budi) {
+        echo "Seed survey belum terselesaikan dilewati: akun Budi tidak ditemukan." . PHP_EOL;
+    } else {
+        $pdo->beginTransaction();
+
+        try {
+            $opensAt = '2026-07-01 09:00:00';
+            $closesAt = '2026-12-31 17:00:00';
+            $createdAt = '2026-06-25 09:00:00';
+            $updatedAt = '2026-07-15 14:00:00';
+
+            $insertSurvey->execute([
+                $unfinishedSurveyTitle,
+                'Seed khusus untuk menguji badge draft, filter belum terselesaikan, dan riwayat survey yang masih dikerjakan.',
+                'Jawaban draft otomatis tersimpan. Lanjutkan pengisian pada halaman berikutnya sebelum mengirim survey.',
+                'Dinas Komunikasi Informatika dan Persandian Kota Yogyakarta',
+                6,
+                'open',
+                (int) $budi['id'],
+                $opensAt,
+                $closesAt,
+                $createdAt,
+                $updatedAt,
+            ]);
+
+            $surveyId = (int) $pdo->lastInsertId();
+            $insertRestriction->execute([$surveyId, 'public']);
+            $insertPage->execute([$surveyId, 1, 'Pengalaman Awal Layanan']);
+            $insertPage->execute([$surveyId, 2, 'Masukan Lanjutan']);
+
+            $insertQuestion->execute([
+                $surveyId,
+                'Bagaimana kesan awal Anda terhadap layanan ini?',
+                'radio_button',
+                1,
+                1,
+                1,
+                null,
+            ]);
+            $q1Id = (int) $pdo->lastInsertId();
+            $q1Options = [];
+
+            foreach (['Sangat baik', 'Baik', 'Cukup', 'Perlu perbaikan'] as $order => $optionText) {
+                $insertOption->execute([$q1Id, $optionText, $order + 1]);
+                $q1Options[$optionText] = (int) $pdo->lastInsertId();
+            }
+
+            $insertQuestion->execute([
+                $surveyId,
+                'Aspek mana yang sudah Anda rasakan manfaatnya?',
+                'checkbox',
+                1,
+                2,
+                1,
+                null,
+            ]);
+            $q2Id = (int) $pdo->lastInsertId();
+            $q2Options = [];
+
+            foreach (['Kecepatan akses', 'Kejelasan informasi', 'Kemudahan alur', 'Kenyamanan fasilitas'] as $order => $optionText) {
+                $insertOption->execute([$q2Id, $optionText, $order + 1]);
+                $q2Options[$optionText] = (int) $pdo->lastInsertId();
+            }
+
+            $insertQuestion->execute([
+                $surveyId,
+                'Apa masukan lanjutan yang ingin Anda sampaikan?',
+                'free_text',
+                1,
+                1,
+                2,
+                null,
+            ]);
+
+            $insertDraftResponse->execute([
+                $surveyId,
+                (int) $budi['id'],
+                1,
+                $createdAt,
+                $updatedAt,
+            ]);
+
+            $responseId = (int) $pdo->lastInsertId();
+            $insertAnswer->execute([$responseId, $q1Id, null, $q1Options['Baik']]);
+            $answerInserted++;
+            $insertAnswer->execute([$responseId, $q2Id, null, $q2Options['Kejelasan informasi']]);
+            $answerInserted++;
+            $insertAnswer->execute([$responseId, $q2Id, null, $q2Options['Kemudahan alur']]);
+            $answerInserted++;
+            $responseInserted++;
+
+            $pdo->commit();
+            $inserted++;
+
+            echo "Seed survey belum terselesaikan ditambahkan: {$unfinishedSurveyTitle} (2026), draft milik Budi." . PHP_EOL;
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 }
 
