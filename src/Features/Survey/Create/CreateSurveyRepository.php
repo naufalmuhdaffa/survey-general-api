@@ -49,6 +49,22 @@ final class CreateSurveyRepository
         return (int) $this->pdo->lastInsertId();
     }
 
+    public function getUserOpdPengampu(int $userId): ?string
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT opd_pengampu
+            FROM users
+            WHERE id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$userId]);
+        $opdPengampu = $stmt->fetchColumn();
+
+        return \is_string($opdPengampu) && trim($opdPengampu) !== ''
+            ? trim($opdPengampu)
+            : null;
+    }
+
     public function createSurveyRestrictions(int $surveyId, array $positions): void
     {
         if ($positions === []) {

@@ -388,6 +388,7 @@ final class ProfileService
             'role_id' => $roleId,
             'role' => $user['role'],
             'position' => $user['position'],
+            'opd_pengampu' => $user['opd_pengampu'],
             'privileges' => $this->privilegeRepository->getPrivilegeNamesByRoleId($privilegeRoleId),
             'address' => $this->identityAddress((string) $user['nik']),
             'is_active' => (bool) $user['is_active'],

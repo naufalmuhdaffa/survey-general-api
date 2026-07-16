@@ -31,11 +31,28 @@ CREATE TABLE IF NOT EXISTS users (
         'non_asn',
         'public'
     ) NOT NULL DEFAULT 'public',
+    opd_pengampu VARCHAR(255) NULL,
     is_active BOOLEAN DEFAULT TRUE, -- Untuk jejak audit, sehingga sistem active/deactive user lebih baik daripada delete user
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (role_id) REFERENCES roles (id)
 );
+
+SET @users_opd_column_exists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'users'
+        AND COLUMN_NAME = 'opd_pengampu'
+);
+SET @users_opd_statement = IF(
+    @users_opd_column_exists = 0,
+    'ALTER TABLE users ADD COLUMN opd_pengampu VARCHAR(255) NULL AFTER position',
+    'DO 0'
+);
+PREPARE users_opd_stmt FROM @users_opd_statement;
+EXECUTE users_opd_stmt;
+DEALLOCATE PREPARE users_opd_stmt;
 
 CREATE TABLE IF NOT EXISTS revoked_tokens (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -129,8 +146,21 @@ CREATE TABLE IF NOT EXISTS surveys (
     FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE RESTRICT
 );
 
-ALTER TABLE surveys
-ADD COLUMN IF NOT EXISTS opd_pengampu VARCHAR(255) NULL AFTER instructions;
+SET @surveys_opd_column_exists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'surveys'
+        AND COLUMN_NAME = 'opd_pengampu'
+);
+SET @surveys_opd_statement = IF(
+    @surveys_opd_column_exists = 0,
+    'ALTER TABLE surveys ADD COLUMN opd_pengampu VARCHAR(255) NULL AFTER instructions',
+    'DO 0'
+);
+PREPARE surveys_opd_stmt FROM @surveys_opd_statement;
+EXECUTE surveys_opd_stmt;
+DEALLOCATE PREPARE surveys_opd_stmt;
 
 CREATE TABLE IF NOT EXISTS survey_restrictions (
     survey_id INT UNSIGNED NOT NULL,
@@ -182,8 +212,21 @@ CREATE TABLE IF NOT EXISTS options ( -- Hanya untuk pertanyaan bertipe radio_but
     FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
 );
 
-ALTER TABLE questions
-ADD CONSTRAINT fk_parent_option_id FOREIGN KEY (parent_option_id) REFERENCES options (id) ON DELETE CASCADE;
+SET @parent_option_fk_exists = (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'questions'
+        AND CONSTRAINT_NAME = 'fk_parent_option_id'
+);
+SET @parent_option_fk_statement = IF(
+    @parent_option_fk_exists = 0,
+    'ALTER TABLE questions ADD CONSTRAINT fk_parent_option_id FOREIGN KEY (parent_option_id) REFERENCES options (id) ON DELETE CASCADE',
+    'DO 0'
+);
+PREPARE parent_option_fk_stmt FROM @parent_option_fk_statement;
+EXECUTE parent_option_fk_stmt;
+DEALLOCATE PREPARE parent_option_fk_stmt;
 
 CREATE TABLE IF NOT EXISTS responses (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

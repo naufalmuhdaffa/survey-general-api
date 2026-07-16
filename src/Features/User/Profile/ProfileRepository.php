@@ -33,6 +33,7 @@ final class ProfileRepository
                 u.role_id,
                 r.name AS role,
                 u.position,
+                u.opd_pengampu,
                 u.is_active,
                 u.created_at,
                 u.updated_at

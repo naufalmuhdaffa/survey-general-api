@@ -100,6 +100,7 @@ final class RegisterService
 
         $identityData = $this->verifyNik($nik);
         $position = $identityData['position'];
+        $opdPengampu = $identityData['opd_pengampu'];
         $verifiedFullName = $identityData['name'];
 
         try {
@@ -112,7 +113,8 @@ final class RegisterService
                 $this->verifiedAt('email', $email),
                 $this->verifiedAt('phone', $phone),
                 $password,
-                $position
+                $position,
+                $opdPengampu
             );
         } catch (RuntimeException $e) {
             throw new RuntimeException($e->getMessage(), 500);
@@ -125,6 +127,7 @@ final class RegisterService
             'roleId' => 1,
             'role' => 'user',
             'position' => $position,
+            'opd_pengampu' => $opdPengampu,
             'csrfToken' => $csrfToken,
         ]);
 
@@ -184,10 +187,19 @@ final class RegisterService
             throw new RuntimeException('Nama pada data identitas tidak valid', 422);
         }
 
+        $opdPengampu = isset($identity['opd_pengampu']) && \is_string($identity['opd_pengampu'])
+            ? trim($identity['opd_pengampu'])
+            : '';
+
+        if ($position !== 'public' && $opdPengampu === '') {
+            throw new RuntimeException('OPD pengampu pada data identitas tidak valid', 422);
+        }
+
         return [
             'name' => $fullName,
             'address' => $identity['address'] ?? null,
             'position' => $position,
+            'opd_pengampu' => $opdPengampu !== '' ? $opdPengampu : null,
         ];
     }
 

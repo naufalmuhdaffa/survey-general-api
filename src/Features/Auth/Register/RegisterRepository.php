@@ -57,7 +57,8 @@ final class RegisterRepository
         ?string $emailVerifiedAt,
         ?string $phoneVerifiedAt,
         string $password,
-        string $position
+        string $position,
+        ?string $opdPengampu
     ): int {
         try {
             $stmt = $this->pdo->prepare("
@@ -70,9 +71,10 @@ final class RegisterRepository
                 email_verified_at,
                 phone_verified_at,
                 password,
-                position
+                position,
+                opd_pengampu
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $stmt->execute([
@@ -84,7 +86,8 @@ final class RegisterRepository
                 $emailVerifiedAt,
                 $phoneVerifiedAt,
                 password_hash($password, PASSWORD_DEFAULT),
-                $position
+                $position,
+                $opdPengampu,
             ]);
 
             return (int) $this->pdo->lastInsertId();

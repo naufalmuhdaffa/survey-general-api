@@ -81,6 +81,7 @@ final class RegisterController
                 'name' => $identity['name'],
                 'address' => $identity['address'],
                 'position' => $identity['position'],
+                'opd_pengampu' => $identity['opd_pengampu'],
             ]
         ], 200);
     }
