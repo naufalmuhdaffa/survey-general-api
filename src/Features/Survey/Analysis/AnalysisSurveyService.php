@@ -13,6 +13,7 @@ final class AnalysisSurveyService
     private const int RESPONDENT_PER_PAGE = 5;
     private const int MAX_PER_PAGE = 100;
     private const array VALID_STATUSES = ['draft', 'upcoming', 'open', 'closed'];
+    private const array VALID_AUDIENCES = ['public', 'asn', 'non_asn'];
 
     private AnalysisSurveyRepository $repository;
 
@@ -29,9 +30,10 @@ final class AnalysisSurveyService
     {
         $search = $this->normalizeSearch($query['search'] ?? '');
         $status = $this->normalizeOption($query['status'] ?? '', self::VALID_STATUSES);
+        $audience = $this->normalizeOption($query['audience'] ?? '', self::VALID_AUDIENCES);
         $year = $this->normalizeYear($query['year'] ?? date('Y'));
         $perPage = $this->normalizePositiveInteger($query['per_page'] ?? self::DEFAULT_PER_PAGE, self::DEFAULT_PER_PAGE, self::MAX_PER_PAGE);
-        $total = $this->repository->countSurveys($createdBy, $search, $status, $year);
+        $total = $this->repository->countSurveys($createdBy, $search, $status, $audience, $year);
         $totalPages = max(1, (int) ceil($total / $perPage));
         $page = min($this->normalizePositiveInteger($query['page'] ?? 1, 1), $totalPages);
         $offset = ($page - 1) * $perPage;
@@ -44,7 +46,7 @@ final class AnalysisSurveyService
             'response_volume' => $this->buildResponseVolume($createdBy, $year),
             'items' => array_map(
                 fn (array $survey): array => $this->formatSurveyRow($survey),
-                $this->repository->getSurveys($createdBy, $search, $status, $year, $perPage, $offset),
+                $this->repository->getSurveys($createdBy, $search, $status, $audience, $year, $perPage, $offset),
             ),
             'meta' => [
                 'page' => $page,

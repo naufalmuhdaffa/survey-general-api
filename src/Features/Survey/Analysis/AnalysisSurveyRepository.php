@@ -133,10 +133,16 @@ final class AnalysisSurveyRepository
         return $stmt->fetchAll();
     }
 
-    public function countSurveys(?int $createdBy, string $search, ?string $status, ?int $year): int
+    public function countSurveys(
+        ?int $createdBy,
+        string $search,
+        ?string $status,
+        ?string $audience,
+        ?int $year
+    ): int
     {
         $params = [];
-        $where = $this->filterCondition($createdBy, $search, $status, $year, $params);
+        $where = $this->filterCondition($createdBy, $search, $status, $audience, $year, $params);
 
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*)
@@ -152,12 +158,13 @@ final class AnalysisSurveyRepository
         ?int $createdBy,
         string $search,
         ?string $status,
+        ?string $audience,
         ?int $year,
         int $limit,
         int $offset
     ): array {
         $params = [];
-        $where = $this->filterCondition($createdBy, $search, $status, $year, $params);
+        $where = $this->filterCondition($createdBy, $search, $status, $audience, $year, $params);
         $effectiveStatus = $this->effectiveStatusExpression();
 
         $stmt = $this->pdo->prepare("
@@ -424,6 +431,7 @@ final class AnalysisSurveyRepository
         ?int $createdBy,
         string $search,
         ?string $status,
+        ?string $audience,
         ?int $year,
         array &$params
     ): string
@@ -447,6 +455,30 @@ final class AnalysisSurveyRepository
         if ($status !== null) {
             $conditions[] = "({$effectiveStatus}) = ?";
             $params[] = $status;
+        }
+
+        if ($audience === 'public') {
+            $conditions[] = "(
+                NOT EXISTS (
+                    SELECT 1
+                    FROM survey_restrictions sr_audience
+                    WHERE sr_audience.survey_id = s.id
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM survey_restrictions sr_audience
+                    WHERE sr_audience.survey_id = s.id
+                        AND sr_audience.position = 'public'
+                )
+            )";
+        } elseif ($audience !== null) {
+            $conditions[] = "EXISTS (
+                SELECT 1
+                FROM survey_restrictions sr_audience
+                WHERE sr_audience.survey_id = s.id
+                    AND sr_audience.position = ?
+            )";
+            $params[] = $audience;
         }
 
         if ($year !== null) {
