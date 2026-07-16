@@ -603,6 +603,96 @@ if ($findSurvey->fetch()) {
     }
 }
 
+$freeTextSurveyTitle = 'Survey Free Text 100 Jawaban Layanan Kota 2026';
+$findSurvey->execute([$freeTextSurveyTitle]);
+
+if ($findSurvey->fetch()) {
+    $skipped++;
+} else {
+    $budi = $pdo->query("
+        SELECT id
+        FROM users
+        WHERE username = 'budi' OR full_name = 'Budi Santoso'
+        ORDER BY username = 'budi' DESC, id ASC
+        LIMIT 1
+    ")->fetch();
+
+    if (!$budi) {
+        echo "Seed free text 100 jawaban dilewati: akun Budi tidak ditemukan." . PHP_EOL;
+    } else {
+        $pdo->beginTransaction();
+
+        try {
+            $opensAt = '2026-07-01 09:00:00';
+            $closesAt = '2026-12-31 17:00:00';
+            $createdAt = '2026-06-28 09:00:00';
+            $updatedAt = '2026-07-16 10:00:00';
+            $submittedAt = '2026-07-16 10:30:00';
+
+            $insertSurvey->execute([
+                $freeTextSurveyTitle,
+                'Seed khusus untuk menguji tampilan rekapitulasi jawaban free text dengan daftar panjang.',
+                'Survey ini berisi satu pertanyaan free text dengan 100 jawaban dummy untuk menguji tombol lihat semua jawaban.',
+                'Badan Perencanaan Pembangunan Daerah Kota Yogyakarta',
+                5,
+                'open',
+                (int) $budi['id'],
+                $opensAt,
+                $closesAt,
+                $createdAt,
+                $updatedAt,
+            ]);
+
+            $surveyId = (int) $pdo->lastInsertId();
+            $insertRestriction->execute([$surveyId, 'public']);
+            $insertPage->execute([$surveyId, 1, 'Masukan Tertulis Responden']);
+
+            $insertQuestion->execute([
+                $surveyId,
+                'Apa masukan utama Anda untuk peningkatan layanan kota?',
+                'free_text',
+                1,
+                1,
+                1,
+                null,
+            ]);
+            $questionId = (int) $pdo->lastInsertId();
+
+            $insertResponse->execute([
+                $surveyId,
+                (int) $budi['id'],
+                $submittedAt,
+                $submittedAt,
+                $submittedAt,
+            ]);
+
+            $responseId = (int) $pdo->lastInsertId();
+
+            for ($answerNumber = 1; $answerNumber <= 100; $answerNumber++) {
+                $insertAnswer->execute([
+                    $responseId,
+                    $questionId,
+                    sprintf(
+                        'Masukan free text dummy ke-%03d: layanan perlu tetap cepat, informatif, dan mudah dipantau oleh warga.',
+                        $answerNumber,
+                    ),
+                    null,
+                ]);
+                $answerInserted++;
+            }
+
+            $responseInserted++;
+            $pdo->commit();
+            $inserted++;
+
+            echo "Seed free text 100 jawaban ditambahkan: {$freeTextSurveyTitle} (2026), dibuat oleh Budi." . PHP_EOL;
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+}
+
 $maxBranchSurveyTitle = 'Survey Percabangan Maksimal Layanan Terpadu 2026';
 $findSurvey->execute([$maxBranchSurveyTitle]);
 
