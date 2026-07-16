@@ -32,19 +32,31 @@ final class ListSurveyRepository
         ?string $status,
         ?string $position,
         ?string $accountPosition,
+        ?int $userId,
+        ?string $responseStatus,
     ): int
     {
         $params = [];
+        $responseJoin = '';
+
+        if ($userId !== null) {
+            $responseJoin = 'LEFT JOIN responses ur ON ur.survey_id = s.id AND ur.user_id = ?';
+            $params[] = $userId;
+        }
+
         $where = $this->filterCondition(
             $search,
             $status,
             $position,
             $accountPosition,
+            $userId,
+            $responseStatus,
             $params,
         );
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*)
             FROM surveys s
+            {$responseJoin}
             WHERE {$where}
         ");
         $stmt->execute($params);
@@ -58,6 +70,7 @@ final class ListSurveyRepository
         ?string $position,
         ?string $accountPosition,
         ?int $userId,
+        ?string $responseStatus,
         int $limit,
         int $offset,
     ): array {
@@ -67,6 +80,8 @@ final class ListSurveyRepository
             $status,
             $position,
             $accountPosition,
+            $userId,
+            $responseStatus,
             $params,
         );
         $responseSelect = $userId !== null
@@ -130,6 +145,8 @@ final class ListSurveyRepository
         ?string $status,
         ?string $position,
         ?string $accountPosition,
+        ?int $userId,
+        ?string $responseStatus,
         array &$params,
     ): string {
         $effectiveStatus = $this->effectiveStatusExpression();
@@ -192,6 +209,17 @@ final class ListSurveyRepository
             )
             ";
             $params[] = $position;
+        }
+
+        if ($responseStatus === 'submitted' || $responseStatus === 'draft') {
+            if ($userId === null) {
+                $conditions[] = '1 = 0';
+            } else {
+                $conditions[] = 'ur.status = ?';
+                $params[] = $responseStatus;
+            }
+        } elseif ($responseStatus === 'not_started' && $userId !== null) {
+            $conditions[] = 'ur.id IS NULL';
         }
 
         return implode(' AND ', $conditions);

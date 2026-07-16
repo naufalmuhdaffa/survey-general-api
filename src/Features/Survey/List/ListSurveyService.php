@@ -13,6 +13,7 @@ final class ListSurveyService
     private const int MAX_SEARCH_LENGTH = 120;
     private const array VALID_PER_PAGES = [5, 10, 25, 50, 100];
     private const array VALID_POSITIONS = ['asn', 'non_asn', 'public'];
+    private const array VALID_RESPONSE_STATUSES = ['submitted', 'draft', 'not_started'];
     private const array VALID_STATUSES = ['open', 'upcoming'];
 
     private ListSurveyRepository $repository;
@@ -44,6 +45,10 @@ final class ListSurveyService
         $search = $this->normalizeSearch($query['search'] ?? '');
         $status = $this->normalizeOption($query['status'] ?? '', self::VALID_STATUSES);
         $position = $this->normalizeOption($query['position'] ?? '', self::VALID_POSITIONS);
+        $responseStatus = $this->normalizeOption(
+            $query['response_status'] ?? '',
+            self::VALID_RESPONSE_STATUSES,
+        );
         $page = $this->normalizePositiveInteger($query['page'] ?? 1, 1);
         $perPage = $this->normalizePerPage($query['per_page'] ?? self::DEFAULT_PER_PAGE);
         $total = $this->repository->countSurveys(
@@ -51,6 +56,8 @@ final class ListSurveyService
             $status,
             $position,
             $this->normalizeOption($accountPosition, self::VALID_POSITIONS),
+            $userId,
+            $responseStatus,
         );
         $totalPages = max(1, (int) ceil($total / $perPage));
         $page = min($page, $totalPages);
@@ -61,6 +68,7 @@ final class ListSurveyService
             $position,
             $this->normalizeOption($accountPosition, self::VALID_POSITIONS),
             $userId,
+            $responseStatus,
             $perPage,
             $offset,
         );
